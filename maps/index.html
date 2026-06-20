@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全球分区地图 - 选择大洲</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', sans-serif; background: #f5f5f5; margin: 0; padding: 40px; }
+        h1 { text-align: center; margin-bottom: 30px; }
+        .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 20px; max-width: 800px; margin: 0 auto; }
+        .card {
+            background: white; border-radius: 12px; padding: 30px 10px; text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.2s; text-decoration: none; color: #333;
+        }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+        .card .emoji { font-size: 3rem; margin-bottom: 10px; }
+        .card .title { font-weight: bold; font-size: 1.1rem; }
+        .card .count { color: #888; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <h1>🗺️ 全球国家分区交互地图</h1>
+    <div class="container">
+        <a href="asia.html" class="card">
+            <div class="emoji">🌏</div>
+            <div class="title">亚洲</div>
+            <div class="count">47 国</div>
+        </a>
+        <a href="europe.html" class="card">
+            <div class="emoji">🇪🇺</div>
+            <div class="title">欧洲</div>
+            <div class="count">45 国</div>
+        </a>
+        <a href="north_america.html" class="card">
+            <div class="emoji">🌎</div>
+            <div class="title">北美洲</div>
+            <div class="count">23 国</div>
+        </a>
+        <a href="south_america.html" class="card">
+            <div class="emoji">🌎</div>
+            <div class="title">南美洲</div>
+            <div class="count">12 国</div>
+        </a>
+        <a href="oceania.html" class="card">
+            <div class="emoji">🌊</div>
+            <div class="title">大洋洲</div>
+            <div class="count">16 国</div>
+        </a>
+        <a href="africa.html" class="card">
+            <div class="emoji">🌍</div>
+            <div class="title">非洲</div>
+            <div class="count">54 国</div>
+        </a>
+    </div>
+</body>
+</html>

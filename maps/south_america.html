@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>南美洲分区互动地图</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin:0; padding:0; font-family:'Microsoft YaHei',sans-serif; }
+        #map { height:100vh; width:100%; background:#aad3df; }
+        #control-panel {
+            position:absolute; top:20px; right:20px; z-index:1000;
+            background:white; padding:15px; border-radius:8px;
+            box-shadow:0 0 15px rgba(0,0,0,0.2); max-width:220px;
+        }
+        h3 { margin-top:0; font-size:16px; text-align:center; color:#333; }
+        .btn {
+            display:block; width:100%; padding:8px 0; margin-bottom:5px;
+            border:none; background:#f0f0f0; cursor:pointer;
+            border-radius:4px; transition:0.3s; font-size:14px;
+            text-align:left; padding-left:10px;
+        }
+        .btn:hover { background:#e0e0e0; }
+        .btn.active { background:#ff5722; color:white; font-weight:bold; }
+        #info-box {
+            position:absolute; bottom:20px; left:20px; z-index:1000;
+            background:rgba(255,255,255,0.9); padding:10px 20px;
+            border-radius:4px; box-shadow:0 0 10px rgba(0,0,0,0.1);
+            font-size:14px; pointer-events:none;
+        }
+        .home-link {
+            position:absolute; top:20px; left:20px; z-index:1000;
+            background:white; padding:8px 14px; border-radius:6px;
+            font-size:13px; text-decoration:none; color:#333;
+            box-shadow:0 0 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <a href="../index.html" class="home-link">🏠 返回首页</a>
+    <div id="map"></div>
+    <div id="control-panel">
+        <h3>🌎 南美洲分区</h3>
+        <button class="btn" data-region="North Trio" onclick="highlightRegion('North Trio')">北部三剑客 (3)</button>
+        <button class="btn" data-region="Andean Duo" onclick="highlightRegion('Andean Duo')">安第斯双雄 (2)</button>
+        <button class="btn" data-region="Atlantic Duo" onclick="highlightRegion('Atlantic Duo')">大西洋双子星 (2)</button>
+        <button class="btn" data-region="Big Five" onclick="highlightRegion('Big Five')">五大核心 (5)</button>
+        <button class="btn" style="margin-top:10px; border:1px solid #ccc;" onclick="resetMap()">重置视图</button>
+    </div>
+    <div id="info-box">正在加载南美洲边界数据...</div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 地图初始化：南美洲中心 (经度 -60，纬度 -15)
+        var map = L.map('map').setView([-15, -60], 3);
+        L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+            subdomains: ['1','2','3','4'],
+            attribution: '© 高德地图'
+        }).addTo(map);
+
+        // ---------- 南美洲区域定义 ----------
+        const regions = {
+            "North Trio": ["Venezuela", "Colombia", "Ecuador"],
+            "Andean Duo": ["Peru", "Chile"],
+            "Atlantic Duo": ["Guyana", "Suriname"],
+            "Big Five": ["Brazil", "Argentina", "Paraguay", "Uruguay", "Bolivia"]
+        };
+        const regionNamesCN = {
+            "North Trio": "北部三剑客",
+            "Andean Duo": "安第斯双雄",
+            "Atlantic Duo": "大西洋双子星",
+            "Big Five": "五大核心"
+        };
+
+        const countryNamesCN = {
+            "Venezuela": "委内瑞拉",
+            "Colombia": "哥伦比亚",
+            "Ecuador": "厄瓜多尔",
+            "Peru": "秘鲁",
+            "Chile": "智利",
+            "Guyana": "圭亚那",
+            "Suriname": "苏里南",
+            "Brazil": "巴西",
+            "Argentina": "阿根廷",
+            "Paraguay": "巴拉圭",
+            "Uruguay": "乌拉圭",
+            "Bolivia": "玻利维亚"
+        };
+
+        function getCountryCN(eng) {
+            return countryNamesCN[eng] || eng;
+        }
+
+        let geojsonLayer, currentActiveRegion = null, activeCountryLayers = [], countryClickedFlag = false;
+
+        function defaultStyle() { return { weight:1, color:'#999', dashArray:'3', fillOpacity:0.1, fillColor:'#eee' }; }
+        function highlightStyle() { return { weight:2, color:'#666', dashArray:'', fillOpacity:0.6, fillColor:'#ff5722' }; }
+        function dimStyle() { return { weight:1, color:'#ccc', dashArray:'', fillOpacity:0.05, fillColor:'#ddd' }; }
+
+        function getRegionByCountry(name) {
+            for (let r in regions) if (regions[r].includes(name)) return r;
+            return null;
+        }
+
+        function resetAllLayersToDefault() {
+            if (!geojsonLayer) return;
+            geojsonLayer.eachLayer(l => { l.setStyle(defaultStyle()); l.currentlyHighlighted = false; });
+            currentActiveRegion = null;
+            activeCountryLayers = [];
+        }
+
+        window.highlightRegion = function(regionName) {
+            if (!geojsonLayer) return;
+            const targets = regions[regionName];
+            if (!targets) return;
+            activeCountryLayers = [];
+            currentActiveRegion = regionName;
+            document.querySelectorAll('.btn').forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-region') === regionName);
+            });
+            geojsonLayer.eachLayer(l => {
+                const name = l.feature.properties.name || l.feature.properties.ADMIN;
+                if (targets.includes(name)) {
+                    l.setStyle(highlightStyle());
+                    l.currentlyHighlighted = true;
+                    l.bringToFront();
+                } else {
+                    l.setStyle(dimStyle());
+                    l.currentlyHighlighted = false;
+                }
+            });
+            document.getElementById('info-box').innerText = `当前展示分区：${regionNamesCN[regionName]}`;
+        };
+
+        window.resetMap = function() {
+            resetAllLayersToDefault();
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('info-box').innerText = "悬停查看国家，点击国家或按钮高亮区域";
+        };
+
+        // 加载 GeoJSON（全球数据，南美洲国家会被识别）
+        fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson')
+            .then(r => r.json())
+            .then(data => {
+                geojsonLayer = L.geoJson(data, {
+                    onEachFeature: function(feature, layer) {
+                        layer.on({
+                            mouseover: function(e) {
+                                const nameEN = feature.properties.name || feature.properties.ADMIN;
+                                const regionKey = getRegionByCountry(nameEN);
+                                const regionText = regionKey ? ` [${regionNamesCN[regionKey]}]` : "";
+                                const nameCN = getCountryCN(nameEN);
+                                document.getElementById('info-box').innerText = 
+                                    `当前国家：${nameCN} ${nameEN}${regionText}`;
+                                if (!layer.currentlyHighlighted) {
+                                    layer.setStyle({ weight:2, color:'#444', fillOpacity:0.4, fillColor:'#666' });
+                                    layer.bringToFront();
+                                }
+                            },
+                            mouseout: function(e) {
+                                if (!layer.currentlyHighlighted) {
+                                    if (currentActiveRegion) layer.setStyle(dimStyle());
+                                    else layer.setStyle(defaultStyle());
+                                } else layer.setStyle(highlightStyle());
+                            },
+                            click: function(e) {
+                                countryClickedFlag = true;
+                                setTimeout(() => countryClickedFlag = false, 100);
+                                const nameEN = feature.properties.name || feature.properties.ADMIN;
+                                document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+                                geojsonLayer.eachLayer(l => { l.setStyle(defaultStyle()); l.currentlyHighlighted = false; });
+                                currentActiveRegion = null;
+                                activeCountryLayers = [];
+                                layer.setStyle(highlightStyle());
+                                layer.currentlyHighlighted = true;
+                                layer.bringToFront();
+                                activeCountryLayers.push(layer);
+                                const regionKey = getRegionByCountry(nameEN);
+                                const regionText = regionKey ? ` [${regionNamesCN[regionKey]}]` : "";
+                                document.getElementById('info-box').innerText = 
+                                    `选中国家：${getCountryCN(nameEN)} ${nameEN}${regionText}`;
+                            }
+                        });
+                    }
+                });
+                geojsonLayer.eachLayer(l => l.setStyle(defaultStyle()));
+                geojsonLayer.addTo(map);
+                document.getElementById('info-box').innerText = "数据加载完毕。点击国家或按钮高亮区域";
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('info-box').innerText = "错误：无法加载边界数据。";
+            });
+
+        map.on('click', function(e) {
+            if (countryClickedFlag) return;
+            resetMap();
+            document.getElementById('info-box').innerText = "未点中国家。请放大地图后点击国家区域内部。";
+        });
+    </script>
+</body>
+</html>
