@@ -151,7 +151,7 @@
         };
 
         // 加载 GeoJSON（全球数据，但只展示北美洲国家）
-        fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson')
+        fetch('https://cdn.jsdelivr.net/gh/datasets/geo-countries@master/data/countries.geojson')
             .then(r => r.json())
             .then(data => {
                 geojsonLayer = L.geoJson(data, {

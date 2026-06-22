@@ -164,7 +164,7 @@
             document.getElementById('info-box').innerText = "悬停查看国家，点击国家或按钮高亮区域";
         };
 
-        const geojsonUrl = 'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson';
+        const geojsonUrl = 'https://cdn.jsdelivr.net/gh/datasets/geo-countries@master/data/countries.geojson';
 
         fetch(geojsonUrl)
             .then(response => response.json())
