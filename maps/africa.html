@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>非洲分区互动地图（带国家标签）</title>
+    <title>非洲分区互动地图（带国家标签 - 修复高亮）</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
+        /* 样式与之前完全相同，保持不变 */
         * { box-sizing: border-box; }
         body { margin: 0; font-family: 'Microsoft YaHei', sans-serif; }
         #map { height: 100vh; width: 100%; background: #b8d9d0; }
@@ -260,10 +261,12 @@
                 "Ghana", "Togo", "Benin", "Niger", "Nigeria"
             ],
             "Central Africa": [
-                "Chad", "Cameroon", "Central African Republic",
-                "Equatorial Guinea", "São Tomé and Principe", "São Tomé and Principe",
+                "Chad", "Cameroon", "Central African Republic", "Central African Rep.",
+                "Equatorial Guinea", "Eq. Guinea",
+                "São Tomé and Principe", "Sao Tome and Principe",
                 "Gabon", "Republic of the Congo", "Congo",
-                "Democratic Republic of the Congo", "Angola"
+                "Democratic Republic of the Congo", "Dem. Rep. Congo",
+                "Angola"
             ],
             "East Africa": [
                 "Eritrea", "Djibouti", "Somalia", "Ethiopia", "Kenya",
@@ -300,7 +303,7 @@
             "Central African Republic": "中非",
             "Equatorial Guinea": "赤道几内亚",
             "São Tomé and Principe": "圣多美和普林西比",
-            "São Tomé and Principe": "圣多美和普林西比",
+            "Sao Tome and Principe": "圣多美和普林西比",
             "Gabon": "加蓬",
             "Republic of the Congo": "刚果（布）", "Congo": "刚果",
             "Democratic Republic of the Congo": "刚果（金）",
@@ -321,7 +324,7 @@
             "Somaliland": "索马里兰地区"
         };
 
-        // 手动指定部分岛国/小国的标签坐标（避免自动计算偏移）
+        // 手动指定岛国坐标
         const labelCoords = {
             "Cabo Verde": { lat: 15.5, lng: -23.5 },
             "Cape Verde": { lat: 15.5, lng: -23.5 },
@@ -330,23 +333,82 @@
             "Mauritius": { lat: -20.2, lng: 57.5 },
             "São Tomé and Principe": { lat: 0.5, lng: 6.5 },
             "Sao Tome and Principe": { lat: 0.5, lng: 6.5 },
-            "Somaliland": { lat: 9.5, lng: 46.0 } // 索马里兰位置
+            "Somaliland": { lat: 9.5, lng: 46.0 }
         };
 
-        // 别名映射（处理 GeoJSON 中可能出现的名称变体）
+        // ========== 扩充别名映射，覆盖常见变体 ==========
         const aliasMap = {
+            // 西非
             "Côte d'Ivoire": "Côte d'Ivoire",
             "Ivory Coast": "Côte d'Ivoire",
+            "Cote d'Ivoire": "Côte d'Ivoire",        // 无重音版本
             "Cabo Verde": "Cabo Verde",
             "Cape Verde": "Cabo Verde",
+            // 中非
             "São Tomé and Principe": "São Tomé and Principe",
             "Sao Tome and Principe": "São Tomé and Principe",
+            "Central African Rep.": "Central African Republic",
+            "Central African Republic": "Central African Republic",
+            "Eq. Guinea": "Equatorial Guinea",
+            "Equatorial Guinea": "Equatorial Guinea",
             "Republic of the Congo": "Republic of the Congo",
-            "Congo": "Republic of the Congo",
+            "Congo": "Republic of the Congo",         // 将 "Congo" 映射到刚果（布）
+            "Dem. Rep. Congo": "Democratic Republic of the Congo",
             "Democratic Republic of the Congo": "Democratic Republic of the Congo",
+            // 东非
             "United Republic of Tanzania": "United Republic of Tanzania",
             "Tanzania": "United Republic of Tanzania",
-            "Swaziland": "Eswatini"
+            // 南非
+            "Swaziland": "Eswatini",
+            "Eswatini": "Eswatini",
+            // 其他可能
+            "South Sudan": "South Sudan",
+            "Sudan": "Sudan",
+            "Egypt": "Egypt",
+            "Libya": "Libya",
+            "Tunisia": "Tunisia",
+            "Algeria": "Algeria",
+            "Morocco": "Morocco",
+            "Mauritania": "Mauritania",
+            "Senegal": "Senegal",
+            "Gambia": "Gambia",
+            "The Gambia": "The Gambia",
+            "Guinea-Bissau": "Guinea-Bissau",
+            "Guinea": "Guinea",
+            "Sierra Leone": "Sierra Leone",
+            "Liberia": "Liberia",
+            "Mali": "Mali",
+            "Burkina Faso": "Burkina Faso",
+            "Ghana": "Ghana",
+            "Togo": "Togo",
+            "Benin": "Benin",
+            "Niger": "Niger",
+            "Nigeria": "Nigeria",
+            "Chad": "Chad",
+            "Cameroon": "Cameroon",
+            "Gabon": "Gabon",
+            "Angola": "Angola",
+            "Eritrea": "Eritrea",
+            "Djibouti": "Djibouti",
+            "Somalia": "Somalia",
+            "Ethiopia": "Ethiopia",
+            "Kenya": "Kenya",
+            "Uganda": "Uganda",
+            "Rwanda": "Rwanda",
+            "Burundi": "Burundi",
+            "Comoros": "Comoros",
+            "Madagascar": "Madagascar",
+            "Seychelles": "Seychelles",
+            "Mauritius": "Mauritius",
+            "Zambia": "Zambia",
+            "Zimbabwe": "Zimbabwe",
+            "Malawi": "Malawi",
+            "Mozambique": "Mozambique",
+            "Namibia": "Namibia",
+            "Botswana": "Botswana",
+            "South Africa": "South Africa",
+            "Lesotho": "Lesotho",
+            "Somaliland": "Somaliland"
         };
 
         const countryGroups = {
@@ -358,7 +420,6 @@
 
         function getRegion(name) {
             if (name === "Somaliland") return "East Africa";
-            // 别名映射
             let mapped = aliasMap[name];
             if (mapped) name = mapped;
             for (let r in regions) {
@@ -374,7 +435,7 @@
         }).addTo(map);
 
         let geojsonLayer, currentRegion = null, clicked = false;
-        const labelMap = new Map(); // 存储图层->标记映射
+        const labelMap = new Map();
 
         const styleDefault = () => ({ weight: 1, color: '#999', dashArray: '3', fillOpacity: 0.1, fillColor: '#eee' });
         const styleHighlight = () => ({ weight: 2, color: '#666', fillOpacity: 0.6, fillColor: '#ff5722' });
@@ -412,11 +473,13 @@
             if (!targets) return;
             currentRegion = name;
             document.querySelectorAll('.btn').forEach(b => b.classList.toggle('active', b.dataset.region === name));
+
             geojsonLayer.eachLayer(l => {
-                const n = l.feature.properties.name || l.feature.properties.ADMIN;
-                // 别名映射
+                let n = l.feature.properties.name || l.feature.properties.ADMIN;
+                // 应用别名映射
                 let mapped = aliasMap[n];
                 if (mapped) n = mapped;
+                // 检查是否在目标列表中
                 if (targets.includes(n)) {
                     l.setStyle(styleHighlight());
                     l.highlighted = true;
@@ -426,10 +489,11 @@
                     l.highlighted = false;
                 }
             });
+
             // 更新标签高亮
             clearLabelHighlights();
             geojsonLayer.eachLayer(l => {
-                const n = l.feature.properties.name || l.feature.properties.ADMIN;
+                let n = l.feature.properties.name || l.feature.properties.ADMIN;
                 let mapped = aliasMap[n];
                 if (mapped) n = mapped;
                 if (targets.includes(n)) {
@@ -447,7 +511,6 @@
             clicked = true;
             setTimeout(() => clicked = false, 100);
 
-            // 检查组映射
             let namesToHighlight = [nameEN];
             let mappedName = aliasMap[nameEN] || nameEN;
             if (countryGroups[mappedName]) {
@@ -469,7 +532,6 @@
                     l.setStyle(styleHighlight());
                     l.highlighted = true;
                     l.bringToFront();
-                    // 高亮对应标签
                     const marker = labelMap.get(l);
                     if (marker) {
                         const el = marker.getElement();
@@ -536,7 +598,6 @@
                     }
                     if (!isAfrica) return;
 
-                    // 获取坐标：优先手动指定，否则从多边形中心计算
                     let coords = labelCoords[nameEN];
                     if (!coords) {
                         const mapped = aliasMap[nameEN];
@@ -547,7 +608,7 @@
                             const center = layer.getBounds().getCenter();
                             coords = { lat: center.lat, lng: center.lng };
                         } catch (e) {
-                            return; // 无法获取则跳过
+                            return;
                         }
                     }
 
@@ -593,7 +654,6 @@
             })
             .catch(() => document.getElementById('info-box').innerText = '错误：无法加载边界数据。');
 
-        // 地图空白点击重置
         map.on('click', () => {
             if (!clicked) {
                 resetAll();
@@ -601,7 +661,6 @@
             }
         });
 
-        // 按钮绑定
         document.querySelectorAll('.btn[data-region]').forEach(btn => {
             btn.onclick = () => highlightRegion(btn.dataset.region);
         });
