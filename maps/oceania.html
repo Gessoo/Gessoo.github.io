@@ -1,78 +1,240 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>大洋洲分区互动地图</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>大洋洲分区互动地图（全标签修复版）</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin:0; padding:0; font-family:'Microsoft YaHei',sans-serif; }
-        #map { height:100vh; width:100%; background:#aad3df; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Microsoft YaHei', sans-serif; }
+        #map { height: 100vh; width: 100%; background: #aad3df; }
+
         #control-panel {
-            position:absolute; top:20px; right:20px; z-index:1000;
-            background:white; padding:15px; border-radius:8px;
-            box-shadow:0 0 15px rgba(0,0,0,0.2); max-width:220px;
+            position: absolute; top: 20px; right: 20px; z-index: 1000;
+            background: rgba(255, 255, 255, 0.95); padding: 12px 14px; border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15); max-width: 190px; backdrop-filter: blur(4px);
         }
-        h3 { margin-top:0; font-size:16px; text-align:center; color:#333; }
+        #control-panel h3 { margin: 0 0 8px 0; font-size: 15px; text-align: center; color: #2c3e50; }
         .btn {
-            display:block; width:100%; padding:8px 0; margin-bottom:5px;
-            border:none; background:#f0f0f0; cursor:pointer;
-            border-radius:4px; transition:0.3s; font-size:14px;
-            text-align:left; padding-left:10px;
+            display: block; width: 100%; padding: 6px 0; margin-bottom: 4px; border: none;
+            background: #f0f2f5; cursor: pointer; border-radius: 4px; font-size: 13px;
+            transition: 0.2s; color: #2c3e50; text-align: left; padding-left: 10px;
         }
-        .btn:hover { background:#e0e0e0; }
-        .btn.active { background:#ff5722; color:white; font-weight:bold; }
+        .btn:hover { background: #e2e6eb; }
+        .btn.active { background: #ff5722; color: #fff; font-weight: 700; }
+        .btn-reset { margin-top: 6px; border: 1px solid #ccc; background: #f8f9fa; text-align: center; }
+
         #info-box {
-            position:absolute; bottom:20px; left:20px; z-index:1000;
-            background:rgba(255,255,255,0.9); padding:10px 20px;
-            border-radius:4px; box-shadow:0 0 10px rgba(0,0,0,0.1);
-            font-size:14px; pointer-events:none;
+            position: absolute; bottom: 20px; left: 20px; z-index: 1000;
+            background: rgba(255, 255, 255, 0.92); padding: 8px 16px; border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); font-size: 14px; pointer-events: none;
+            max-width: 400px; border-left: 4px solid #ff5722; color: #1e2a3a;
         }
-        .home-link {
-            position:absolute; top:20px; left:20px; z-index:1000;
-            background:white; padding:8px 14px; border-radius:6px;
-            font-size:13px; text-decoration:none; color:#333;
-            box-shadow:0 0 10px rgba(0,0,0,0.1);
+
+        .top-left {
+            position: absolute; top: 20px; left: 20px; z-index: 1000;
+            display: flex; flex-direction: column; gap: 6px; pointer-events: none;
+        }
+        .top-left>* { pointer-events: auto; }
+        .home-link, .toggle-panel-btn {
+            background: rgba(255, 255, 255, 0.95); padding: 6px 14px; border-radius: 6px;
+            font-size: 13px; text-decoration: none; color: #2c3e50;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: none; cursor: pointer;
+            font-family: inherit; backdrop-filter: blur(4px);
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .toggle-panel-btn .badge {
+            background: #ff5722; color: #fff; font-size: 11px; border-radius: 10px;
+            padding: 0 8px; line-height: 18px; font-weight: 700;
+        }
+
+        .info-panel {
+            position: absolute; top: 80px; left: 20px; z-index: 999;
+            width: 370px; max-height: calc(100vh - 190px);
+            background: rgba(255, 255, 255, 0.97); backdrop-filter: blur(8px);
+            border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+            padding: 0; overflow: hidden;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            transform: translateX(-110%); opacity: 0; pointer-events: none;
+            display: flex; flex-direction: column;
+        }
+        .info-panel.open { transform: translateX(0); opacity: 1; pointer-events: auto; }
+        .panel-header {
+            display: flex; justify-content: space-between; padding: 12px 18px 8px 18px;
+            border-bottom: 1px solid #eef2f6; flex-shrink: 0;
+        }
+        .panel-header h2 { margin: 0; font-size: 16px; font-weight: 700; color: #1e2a3a; }
+        .panel-header h2 span { font-weight: 400; font-size: 13px; color: #6b7a8d; }
+        .close-panel-btn {
+            background: none; border: none; font-size: 20px; cursor: pointer;
+            color: #8b9aab; padding: 0 4px;
+        }
+        .close-panel-btn:hover { color: #e74c3c; }
+        .panel-body {
+            padding: 10px 18px 18px; overflow-y: auto; flex: 1;
+        }
+        .panel-body::-webkit-scrollbar { width: 4px; }
+        .panel-body::-webkit-scrollbar-thumb { background: #cdd4dc; border-radius: 4px; }
+
+        .region-tags {
+            display: flex; flex-wrap: wrap; gap: 4px 8px;
+            margin-bottom: 10px; padding-bottom: 8px;
+            border-bottom: 1px dashed #e8edf2; font-size: 12px;
+        }
+        .region-tags span {
+            padding: 2px 10px; border-radius: 12px; background: #f0f2f5; font-weight: 500;
+        }
+        .region-block { margin-bottom: 12px; }
+        .region-block:last-child { margin-bottom: 0; }
+        .region-title {
+            font-weight: 700; font-size: 14px; display: flex;
+            justify-content: space-between; color: #1e2a3a;
+        }
+        .region-title .dot {
+            display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+            margin-right: 6px;
+        }
+        .region-title .count {
+            font-weight: 400; color: #6b7a8d; font-size: 13px;
+        }
+        .country-list {
+            font-size: 13px; line-height: 1.6; padding-left: 18px;
+            margin: 2px 0 0; color: #2c3e50;
+        }
+        .country-list .sub {
+            display: block; font-weight: 500; color: #3d4f60; margin-top: 2px;
+        }
+        .country-list .sub .label { font-weight: 600; }
+        .country-list .note { color: #7a8a9b; font-size: 12px; }
+        .panel-footnote {
+            margin-top: 10px; padding-top: 10px; border-top: 1px solid #e8edf2;
+            font-size: 12px; color: #5a6a7a; line-height: 1.5;
+        }
+        .panel-footnote strong { color: #2c3e50; }
+
+        .country-label {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #222;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+            white-space: nowrap;
+            pointer-events: auto;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            text-shadow: 0 0 2px white;
+        }
+        .country-label:hover {
+            background: #ff5722;
+            color: white;
+            transform: scale(1.05);
+            border-color: #ff5722;
+        }
+        .country-label.active-label {
+            background: #ff5722;
+            color: white;
+            border-color: #ff5722;
+            font-weight: 700;
+        }
+
+        @media (max-width: 700px) {
+            .info-panel { width: calc(100vw - 40px); max-height: calc(100vh - 170px); }
+            #control-panel { max-width: 160px; padding: 10px 12px; top: 14px; right: 14px; }
+            .top-left { top: 14px; left: 14px; }
+            .home-link, .toggle-panel-btn { font-size: 12px; padding: 5px 10px; }
+            #info-box { font-size: 12px; padding: 6px 12px; max-width: 260px; }
+            .country-label { font-size: 10px; padding: 1px 4px; }
+        }
+        @media (max-width: 480px) {
+            #control-panel { max-width: 130px; padding: 8px 8px; }
+            .btn { font-size: 11px; padding: 4px 0; padding-left: 6px; }
+            .info-panel { width: calc(100vw - 24px); left: 12px; top: 68px; max-height: calc(100vh - 150px); }
+            .panel-header h2 { font-size: 14px; }
+            .country-list { font-size: 12px; }
+            .country-label { font-size: 9px; padding: 1px 3px; }
         }
     </style>
 </head>
 <body>
-    <a href="index.html" class="home-link">🏠 返回首页</a>
+
+    <div class="top-left">
+        <a href="index.html" class="home-link">🏠 返回首页</a>
+        <button class="toggle-panel-btn" id="togglePanelBtn">📖 国家列表 <span class="badge">16</span></button>
+    </div>
+
     <div id="map"></div>
+
     <div id="control-panel">
         <h3>🌊 大洋洲分区</h3>
-        <button class="btn" data-region="Big Three" onclick="highlightRegion('Big Three')">三巨头 (3)</button>
-        <button class="btn" data-region="Melanesia" onclick="highlightRegion('Melanesia')">美拉尼西亚 (3)</button>
-        <button class="btn" data-region="Micronesia" onclick="highlightRegion('Micronesia')">密克罗尼西亚 (5)</button>
-        <button class="btn" data-region="Polynesia" onclick="highlightRegion('Polynesia')">波利尼西亚 (5)</button>
-        <button class="btn" style="margin-top:10px; border:1px solid #ccc;" onclick="resetMap()">重置视图</button>
+        <button class="btn" data-region="Big Three">三巨头 (3)</button>
+        <button class="btn" data-region="Melanesia">美拉尼西亚 (3)</button>
+        <button class="btn" data-region="Micronesia">密克罗尼西亚 (5)</button>
+        <button class="btn" data-region="Polynesia">波利尼西亚 (5)</button>
+        <button class="btn btn-reset">↺ 重置</button>
     </div>
-    <div id="info-box">正在加载大洋洲边界数据...</div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <div id="info-box">正在加载大洋洲边界数据…</div>
+
+    <div class="info-panel" id="infoPanel">
+        <div class="panel-header">
+            <h2>🌊 大洋洲 16 国 <span>分区</span></h2>
+            <button class="close-panel-btn" id="closePanelBtn">✕</button>
+        </div>
+        <div class="panel-body">
+            <div class="region-tags">
+                <span style="background:#dbeafe;color:#1a4a8a;">三巨头</span>
+                <span style="background:#fde8e8;color:#a93226;">美拉尼西亚</span>
+                <span style="background:#d5f5e3;color:#1a7a42;">密克罗尼西亚</span>
+                <span style="background:#ebdef0;color:#6c3483;">波利尼西亚</span>
+            </div>
+            <div style="background:#fef9e7; padding:4px 10px; border-radius:6px; margin-bottom:10px; font-size:13px; color:#7d6608;">
+                <strong>2 发达国家：</strong>澳大利亚、新西兰
+            </div>
+            <div class="region-block">
+                <div class="region-title"><span><span class="dot" style="background:#3b82f6;"></span>三巨头（西边）</span><span class="count">3 国</span></div>
+                <div class="country-list">澳大利亚 (Australia)、巴布亚新几内亚 (Papua New Guinea) <span class="note">（正北）</span>、新西兰 (New Zealand) <span class="note">（东南）</span></div>
+            </div>
+            <div class="region-block">
+                <div class="region-title"><span><span class="dot" style="background:#e74c3c;"></span>美拉尼西亚（东北）</span><span class="count">3 国</span></div>
+                <div class="country-list">所罗门群岛 (Solomon Islands)、瓦努阿图 (Vanuatu)、斐济 (Fiji)</div>
+            </div>
+            <div class="region-block">
+                <div class="region-title"><span><span class="dot" style="background:#27ae60;"></span>密克罗尼西亚（西北）</span><span class="count">5 国</span></div>
+                <div class="country-list">帕劳 (Palau)、密克罗尼西亚联邦 (Federated States of Micronesia)、马绍尔群岛 (Marshall Islands)、基里巴斯 (Kiribati)、瑙鲁 (Nauru)</div>
+            </div>
+            <div class="region-block">
+                <div class="region-title"><span><span class="dot" style="background:#8e44ad;"></span>波利尼西亚（东边）</span><span class="count">5 国</span></div>
+                <div class="country-list">图瓦卢 (Tuvalu)、萨摩亚 (Samoa)、汤加 (Tonga)、纽埃 (Niue)、库克群岛 (Cook Islands)</div>
+            </div>
+            <div class="panel-footnote">
+                <strong>🆕 库克群岛 和 纽埃</strong> 虽由新西兰代管外交国防，但仍是独立国家。
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
     <script>
-        // 地图初始化：大洋洲中心 (经度 170，纬度 -20)
-        var map = L.map('map').setView([-20, 170], 4);
-        L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
-            subdomains: ['1','2','3','4'],
-            attribution: '© 高德地图'
-        }).addTo(map);
-
-        // ---------- 大洋洲区域定义 ----------
+        // ======================== 数据 ========================
         const regions = {
             "Big Three": ["Australia", "Papua New Guinea", "New Zealand"],
             "Melanesia": ["Solomon Islands", "Vanuatu", "Fiji"],
             "Micronesia": ["Palau", "Micronesia", "Federated States of Micronesia", "Marshall Islands", "Kiribati", "Nauru"],
             "Polynesia": ["Tuvalu", "Samoa", "Tonga", "Niue", "Cook Islands"]
         };
-        const regionNamesCN = {
+
+        const regionCN = {
             "Big Three": "三巨头",
             "Melanesia": "美拉尼西亚",
             "Micronesia": "密克罗尼西亚",
             "Polynesia": "波利尼西亚"
         };
 
-        const countryNamesCN = {
+        const countryCN = {
             "Australia": "澳大利亚",
             "Papua New Guinea": "巴布亚新几内亚",
             "New Zealand": "新西兰",
@@ -92,116 +254,286 @@
             "Cook Islands": "库克群岛"
         };
 
-        function getCountryCN(eng) {
-            return countryNamesCN[eng] || eng;
-        }
+        // ========== 手动指定每个国家的标签坐标 ==========
+        const labelCoords = {
+            "Australia": { lat: -25, lng: 134 },
+            "Papua New Guinea": { lat: -6, lng: 147 },
+            "New Zealand": { lat: -42, lng: 174 },
+            "Solomon Islands": { lat: -8, lng: 160 },
+            "Vanuatu": { lat: -15, lng: 168 },
+            "Fiji": { lat: -18, lng: 178 },
+            "Palau": { lat: 7.5, lng: 134.5 },
+            "Micronesia": { lat: 6.9, lng: 158.2 },
+            "Federated States of Micronesia": { lat: 6.9, lng: 158.2 },
+            "Marshall Islands": { lat: 7.1, lng: 171.2 },
+            "Kiribati": { lat: -1.5, lng: -168 },      // 基里巴斯横跨东西半球，使用主岛坐标
+            "Nauru": { lat: -0.5, lng: 166.9 },
+            "Tuvalu": { lat: -7.5, lng: 179.2 },
+            "Samoa": { lat: -13.8, lng: -172.1 },
+            "Tonga": { lat: -21.2, lng: -175.2 },
+            "Niue": { lat: -19.05, lng: -169.85 },
+            "Cook Islands": { lat: -21.2, lng: -159.8 }
+        };
 
-        let geojsonLayer, currentActiveRegion = null, activeCountryLayers = [], countryClickedFlag = false;
+        // ========== 别名映射（GeoJSON 中可能出现的名称变体） ==========
+        const aliasMap = {
+            "Cook Is.": "Cook Islands",
+            "Cook Islands": "Cook Islands",
+            "Niue": "Niue",
+            "Samoa": "Samoa",
+            "Tonga": "Tonga",
+            "Kiribati": "Kiribati"
+            // 如果还有其他变体，可继续添加
+        };
 
-        function defaultStyle() { return { weight:1, color:'#999', dashArray:'3', fillOpacity:0.1, fillColor:'#eee' }; }
-        function highlightStyle() { return { weight:2, color:'#666', dashArray:'', fillOpacity:0.6, fillColor:'#ff5722' }; }
-        function dimStyle() { return { weight:1, color:'#ccc', dashArray:'', fillOpacity:0.05, fillColor:'#ddd' }; }
+        function getCN(eng) { return countryCN[eng] || eng; }
 
-        function getRegionByCountry(name) {
-            for (let r in regions) if (regions[r].includes(name)) return r;
+        function getRegion(name) {
+            for (let r in regions)
+                if (regions[r].includes(name)) return r;
             return null;
         }
 
-        function resetAllLayersToDefault() {
-            if (!geojsonLayer) return;
-            geojsonLayer.eachLayer(l => { l.setStyle(defaultStyle()); l.currentlyHighlighted = false; });
-            currentActiveRegion = null;
-            activeCountryLayers = [];
+        // 获取标签坐标，支持别名
+        function getLabelCoords(name) {
+            // 先直接查找
+            if (labelCoords[name]) return labelCoords[name];
+            // 尝试别名映射
+            const mapped = aliasMap[name];
+            if (mapped && labelCoords[mapped]) return labelCoords[mapped];
+            // 尝试忽略末尾的点或空格
+            const trimmed = name.replace(/\.$/, '').trim();
+            if (labelCoords[trimmed]) return labelCoords[trimmed];
+            // 若仍找不到，返回 null
+            return null;
         }
 
-        window.highlightRegion = function(regionName) {
-            if (!geojsonLayer) return;
-            const targets = regions[regionName];
-            if (!targets) return;
-            activeCountryLayers = [];
-            currentActiveRegion = regionName;
-            document.querySelectorAll('.btn').forEach(b => {
-                b.classList.toggle('active', b.getAttribute('data-region') === regionName);
+        // ======================== 地图 ========================
+        const map = L.map('map').setView([-20, 170], 4);
+        L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+            subdomains: ['1', '2', '3', '4']
+        }).addTo(map);
+
+        let geojsonLayer, currentRegion = null, clicked = false;
+        const labelMap = new Map();
+
+        const styleDefault = () => ({ weight: 1, color: '#999', dashArray: '3', fillOpacity: 0.1, fillColor: '#eee' });
+        const styleHighlight = () => ({ weight: 2, color: '#666', fillOpacity: 0.6, fillColor: '#ff5722' });
+        const styleDim = () => ({ weight: 1, color: '#ccc', fillOpacity: 0.05, fillColor: '#ddd' });
+
+        function clearLabelHighlights() {
+            labelMap.forEach((marker) => {
+                const el = marker.getElement();
+                if (el) el.classList.remove('active-label');
             });
+        }
+
+        function highlightLabel(layer) {
+            clearLabelHighlights();
+            const marker = labelMap.get(layer);
+            if (marker) {
+                const el = marker.getElement();
+                if (el) el.classList.add('active-label');
+            }
+        }
+
+        function resetAll() {
+            if (!geojsonLayer) return;
+            geojsonLayer.eachLayer(l => { l.setStyle(styleDefault()); l.highlighted = false; });
+            currentRegion = null;
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('info-box').innerText = '悬停查看国家，点击国家或标签高亮区域';
+            clearLabelHighlights();
+        }
+
+        window.highlightRegion = function(name) {
+            if (!geojsonLayer) return;
+            const targets = regions[name];
+            if (!targets) return;
+            currentRegion = name;
+            document.querySelectorAll('.btn').forEach(b => b.classList.toggle('active', b.dataset.region === name));
             geojsonLayer.eachLayer(l => {
-                const name = l.feature.properties.name || l.feature.properties.ADMIN;
-                if (targets.includes(name)) {
-                    l.setStyle(highlightStyle());
-                    l.currentlyHighlighted = true;
+                const n = l.feature.properties.name || l.feature.properties.ADMIN;
+                if (targets.includes(n)) {
+                    l.setStyle(styleHighlight());
+                    l.highlighted = true;
                     l.bringToFront();
                 } else {
-                    l.setStyle(dimStyle());
-                    l.currentlyHighlighted = false;
+                    l.setStyle(styleDim());
+                    l.highlighted = false;
                 }
             });
-            document.getElementById('info-box').innerText = `当前展示分区：${regionNamesCN[regionName]}`;
+            clearLabelHighlights();
+            geojsonLayer.eachLayer(l => {
+                const n = l.feature.properties.name || l.feature.properties.ADMIN;
+                if (targets.includes(n)) {
+                    const marker = labelMap.get(l);
+                    if (marker) {
+                        const el = marker.getElement();
+                        if (el) el.classList.add('active-label');
+                    }
+                }
+            });
+            document.getElementById('info-box').innerText = '当前分区：' + regionCN[name];
         };
 
-        window.resetMap = function() {
-            resetAllLayersToDefault();
+        function handleCountryClick(layer, nameEN) {
+            clicked = true;
+            setTimeout(() => clicked = false, 100);
+            geojsonLayer.eachLayer(l => {
+                l.setStyle(styleDefault());
+                l.highlighted = false;
+            });
+            clearLabelHighlights();
+            layer.setStyle(styleHighlight());
+            layer.highlighted = true;
+            layer.bringToFront();
+            const marker = labelMap.get(layer);
+            if (marker) {
+                const el = marker.getElement();
+                if (el) el.classList.add('active-label');
+            }
             document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('info-box').innerText = "悬停查看国家，点击国家或按钮高亮区域";
-        };
+            currentRegion = null;
+            const r = getRegion(nameEN);
+            const txt = r ? ' [' + regionCN[r] + ']' : '';
+            document.getElementById('info-box').innerText = '选中国家：' + getCN(nameEN) + ' ' + nameEN + txt;
+        }
 
-        // 加载 GeoJSON（全球数据，大洋洲国家会被识别）
+        // 加载 GeoJSON
         fetch('https://cdn.jsdelivr.net/gh/datasets/geo-countries@master/data/countries.geojson')
             .then(r => r.json())
             .then(data => {
                 geojsonLayer = L.geoJson(data, {
-                    onEachFeature: function(feature, layer) {
+                    onEachFeature: (feature, layer) => {
+                        const nameEN = feature.properties.name || feature.properties.ADMIN;
+                        layer.feature = feature;
                         layer.on({
-                            mouseover: function(e) {
-                                const nameEN = feature.properties.name || feature.properties.ADMIN;
-                                const regionKey = getRegionByCountry(nameEN);
-                                const regionText = regionKey ? ` [${regionNamesCN[regionKey]}]` : "";
-                                const nameCN = getCountryCN(nameEN);
-                                document.getElementById('info-box').innerText = 
-                                    `当前国家：${nameCN} ${nameEN}${regionText}`;
-                                if (!layer.currentlyHighlighted) {
-                                    layer.setStyle({ weight:2, color:'#444', fillOpacity:0.4, fillColor:'#666' });
+                            mouseover: e => {
+                                const r = getRegion(nameEN);
+                                const txt = r ? ' [' + regionCN[r] + ']' : '';
+                                document.getElementById('info-box').innerText = '当前国家：' + getCN(nameEN) +
+                                    ' ' + nameEN + txt;
+                                if (!layer.highlighted) {
+                                    layer.setStyle({ weight: 2, color: '#444', fillOpacity: 0.4,
+                                        fillColor: '#666' });
                                     layer.bringToFront();
                                 }
                             },
-                            mouseout: function(e) {
-                                if (!layer.currentlyHighlighted) {
-                                    if (currentActiveRegion) layer.setStyle(dimStyle());
-                                    else layer.setStyle(defaultStyle());
-                                } else layer.setStyle(highlightStyle());
+                            mouseout: e => {
+                                if (!layer.highlighted) {
+                                    layer.setStyle(currentRegion ? styleDim() : styleDefault());
+                                } else layer.setStyle(styleHighlight());
                             },
-                            click: function(e) {
-                                countryClickedFlag = true;
-                                setTimeout(() => countryClickedFlag = false, 100);
-                                const nameEN = feature.properties.name || feature.properties.ADMIN;
-                                document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-                                geojsonLayer.eachLayer(l => { l.setStyle(defaultStyle()); l.currentlyHighlighted = false; });
-                                currentActiveRegion = null;
-                                activeCountryLayers = [];
-                                layer.setStyle(highlightStyle());
-                                layer.currentlyHighlighted = true;
-                                layer.bringToFront();
-                                activeCountryLayers.push(layer);
-                                const regionKey = getRegionByCountry(nameEN);
-                                const regionText = regionKey ? ` [${regionNamesCN[regionKey]}]` : "";
-                                document.getElementById('info-box').innerText = 
-                                    `选中国家：${getCountryCN(nameEN)} ${nameEN}${regionText}`;
+                            click: e => {
+                                handleCountryClick(layer, nameEN);
                             }
                         });
                     }
                 });
-                geojsonLayer.eachLayer(l => l.setStyle(defaultStyle()));
+                geojsonLayer.eachLayer(l => l.setStyle(styleDefault()));
                 geojsonLayer.addTo(map);
-                document.getElementById('info-box').innerText = "数据加载完毕。点击国家或按钮高亮区域";
-            })
-            .catch(err => {
-                console.error(err);
-                document.getElementById('info-box').innerText = "错误：无法加载边界数据。";
-            });
 
-        map.on('click', function(e) {
-            if (countryClickedFlag) return;
-            resetMap();
-            document.getElementById('info-box').innerText = "未点中国家。请放大地图后点击国家区域内部。";
+                // ======== 为所有大洋洲国家添加标签（使用别名匹配） ========
+                const oceaniaNames = new Set();
+                for (let r in regions) {
+                    regions[r].forEach(n => oceaniaNames.add(n));
+                }
+
+                geojsonLayer.eachLayer(layer => {
+                    const nameEN = layer.feature.properties.name || layer.feature.properties.ADMIN;
+                    // 检查是否属于大洋洲（通过 regions 或别名映射）
+                    let isOceania = oceaniaNames.has(nameEN);
+                    if (!isOceania) {
+                        // 尝试别名映射
+                        const mapped = aliasMap[nameEN];
+                        if (mapped && oceaniaNames.has(mapped)) isOceania = true;
+                    }
+                    if (!isOceania) return;
+
+                    // 获取坐标（支持别名）
+                    let coords = getLabelCoords(nameEN);
+                    // 如果仍未找到，尝试用别名映射后的名称再查一次
+                    if (!coords) {
+                        const mapped = aliasMap[nameEN];
+                        if (mapped) coords = getLabelCoords(mapped);
+                    }
+                    if (!coords) {
+                        // 如果还是没有坐标，跳过（理论上不会发生）
+                        console.warn('No coordinates for:', nameEN);
+                        return;
+                    }
+
+                    const cnName = getCN(nameEN);
+                    const icon = L.divIcon({
+                        className: 'country-label',
+                        html: cnName,
+                        iconSize: [null, null],
+                        iconAnchor: [0, 0]
+                    });
+                    const marker = L.marker([coords.lat, coords.lng], {
+                        icon: icon,
+                        zIndexOffset: 1000,
+                        interactive: true,
+                        keyboard: false
+                    }).addTo(map);
+
+                    labelMap.set(layer, marker);
+
+                    marker.on('mouseover', function(e) {
+                        const r = getRegion(nameEN);
+                        const txt = r ? ' [' + regionCN[r] + ']' : '';
+                        document.getElementById('info-box').innerText = '当前国家：' + getCN(nameEN) + ' ' +
+                            nameEN + txt;
+                        if (!layer.highlighted) {
+                            layer.setStyle({ weight: 2, color: '#444', fillOpacity: 0.4,
+                            fillColor: '#666' });
+                            layer.bringToFront();
+                        }
+                    });
+                    marker.on('mouseout', function(e) {
+                        if (!layer.highlighted) {
+                            layer.setStyle(currentRegion ? styleDim() : styleDefault());
+                        } else layer.setStyle(styleHighlight());
+                    });
+                    marker.on('click', function(e) {
+                        L.DomEvent.stopPropagation(e);
+                        handleCountryClick(layer, nameEN);
+                    });
+                });
+
+                document.getElementById('info-box').innerText = '数据加载完毕。点击国家或标签高亮区域';
+            })
+            .catch(() => document.getElementById('info-box').innerText = '错误：无法加载边界数据。');
+
+        map.on('click', () => {
+            if (!clicked) {
+                resetAll();
+                document.getElementById('info-box').innerText = '未点中国家。请放大地图点击国家或标签。';
+            }
         });
+
+        document.querySelectorAll('.btn[data-region]').forEach(btn => {
+            btn.onclick = () => highlightRegion(btn.dataset.region);
+        });
+        document.querySelector('.btn-reset').onclick = resetAll;
+
+        // 侧边栏控制
+        const panel = document.getElementById('infoPanel');
+        const toggleBtn = document.getElementById('togglePanelBtn');
+        const closeBtn = document.getElementById('closePanelBtn');
+
+        function openPanel() { panel.classList.add('open');
+            toggleBtn.innerHTML = '📖 收起列表 <span class="badge">16</span>'; }
+
+        function closePanel() { panel.classList.remove('open');
+            toggleBtn.innerHTML = '📖 国家列表 <span class="badge">16</span>'; }
+        toggleBtn.onclick = e => { e.stopPropagation();
+            panel.classList.contains('open') ? closePanel() : openPanel(); };
+        closeBtn.onclick = e => { e.stopPropagation();
+            closePanel(); };
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
     </script>
+
 </body>
 </html>

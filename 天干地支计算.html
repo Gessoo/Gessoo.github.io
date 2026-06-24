@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天干地支 · 六十甲子查询系统</title>
+    <style>
+        :root {
+            --bg: #fdf6ec;
+            --card-bg: #fffef9;
+            --text: #3d2b1f;
+            --text-light: #6b5344;
+            --gold: #c4944a;
+            --gold-light: #e8c97a;
+            --gold-pale: #fdf3e0;
+            --red: #b5343a;
+            --red-light: #d4645a;
+            --red-pale: #fef5f5;
+            --jade: #5a8a6a;
+            --ink: #2c2416;
+            --border: #e0d5c1;
+            --shadow: 0 4px 20px rgba(61, 43, 31, 0.08);
+            --shadow-lg: 0 8px 40px rgba(61, 43, 31, 0.12);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --font-cn: 'STSong', 'Songti SC', 'Noto Serif SC', 'KaiTi', 'STKaiti', '楷体', 'SimSun', '宋体', serif;
+            --font-display: 'STZhongsong', 'ZCOOL XiaoWei', 'Ma Shan Zheng', 'STKaiti', '楷体', var(--font-cn);
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: var(--font-cn);
+            background: linear-gradient(160deg, #fdf6ec 0%, #f8efe0 30%, #fefaf3 60%, #fdf5e6 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text);
+            line-height: 1.7;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse at 15% 20%, rgba(196, 148, 74, 0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 85% 70%, rgba(181, 52, 58, 0.03) 0%, transparent 55%),
+                radial-gradient(ellipse at 50% 50%, rgba(90, 138, 106, 0.03) 0%, transparent 65%);
+            opacity: 0.8;
+        }
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            padding-bottom: 40px;
+        }
+        .header {
+            text-align: center;
+            padding: 16px 0 4px;
+        }
+        .header .title {
+            font-family: var(--font-display);
+            font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+            font-weight: 700;
+            color: var(--ink);
+            letter-spacing: 0.06em;
+            margin-bottom: 4px;
+            position: relative;
+            display: inline-block;
+        }
+        .header .title::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 10%;
+            width: 80%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            border-radius: 1px;
+        }
+        .header .subtitle {
+            font-size: 0.95rem;
+            color: var(--text-light);
+            letter-spacing: 0.04em;
+            margin-top: 6px;
+        }
+        .header .badge {
+            display: inline-block;
+            background: var(--red);
+            color: #fff;
+            font-size: 0.78rem;
+            padding: 4px 16px;
+            border-radius: 20px;
+            letter-spacing: 0.05em;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px 28px;
+            box-shadow: var(--shadow);
+            transition: box-shadow var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--gold-light), var(--red-light), var(--gold-light));
+            opacity: 0.5;
+            border-radius: 3px 3px 0 0;
+        }
+        .card-title {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--ink);
+            margin-bottom: 20px;
+            letter-spacing: 0.04em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card-title .icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #fdf3e0, #fce8c8);
+            font-size: 1.1rem;
+        }
+
+        /* ========== 起源引言卡片 ========== */
+        .origin-card {
+            background: linear-gradient(170deg, #fffefb 0%, #fefaf3 30%, #fdf8ed 100%);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px 32px 28px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: visible;
+        }
+        .origin-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--gold-light), var(--red-light), var(--gold-light));
+            opacity: 0.6;
+            border-radius: 3px 3px 0 0;
+        }
+        /* 左侧装饰竖线 */
+        .origin-card::after {
+            content: '';
+            position: absolute;
+            left: 28px;
+            top: 40px;
+            bottom: 30px;
+            width: 3px;
+            background: linear-gradient(180deg,
+                    transparent 0%,
+                    rgba(196, 148, 74, 0.25) 8%,
+                    rgba(181, 52, 58, 0.35) 30%,
+                    rgba(196, 148, 74, 0.30) 55%,
+                    rgba(181, 52, 58, 0.25) 80%,
+                    transparent 100%);
+            border-radius: 2px;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .origin-content {
+            position: relative;
+            z-index: 1;
+            padding-left: 28px;
+        }
+        .origin-content .lead-line {
+            font-family: var(--font-display);
+            font-size: 1.18rem;
+            font-weight: 600;
+            color: #5c3d2e;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+            line-height: 1.9;
+            text-indent: 0;
+        }
+        .origin-content .body-text {
+            font-size: 0.96rem;
+            color: #4a3628;
+            letter-spacing: 0.03em;
+            line-height: 2;
+            text-align: justify;
+            margin-bottom: 12px;
+        }
+        .origin-content .body-text:last-child {
+            margin-bottom: 0;
+        }
+        .origin-content .highlight-dz {
+            color: #b5343a;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+        .origin-content .highlight-tg {
+            color: #5a8a6a;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+        .origin-content .highlight-combo {
+            color: #8b6914;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+        .origin-content .highlight-key {
+            color: #b5343a;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            background: linear-gradient(180deg, transparent 60%, rgba(232, 201, 122, 0.30) 60%);
+            padding: 0 2px;
+        }
+        .origin-content .highlight-sixty {
+            color: #8b4d1a;
+            font-weight: 700;
+            font-size: 1.02em;
+            letter-spacing: 0.04em;
+            background: linear-gradient(180deg, transparent 58%, rgba(196, 148, 74, 0.22) 58%);
+            padding: 0 4px;
+            white-space: nowrap;
+        }
+        /* 引号装饰 */
+        .origin-quote-mark {
+            position: absolute;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 5rem;
+            color: rgba(196, 148, 74, 0.12);
+            line-height: 1;
+            pointer-events: none;
+            z-index: 0;
+            user-select: none;
+        }
+        .origin-quote-mark.open {
+            top: 8px;
+            left: 18px;
+        }
+        .origin-quote-mark.close {
+            bottom: -10px;
+            right: 20px;
+            transform: rotate(180deg);
+        }
+
+        /* ---------- 计算器 ---------- */
+        .calc-input-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .calc-input-group input {
+            flex: 1;
+            min-width: 160px;
+            padding: 13px 18px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 1.05rem;
+            font-family: var(--font-cn);
+            background: #fffefb;
+            color: var(--text);
+            transition: all var(--transition);
+            letter-spacing: 0.03em;
+        }
+        .calc-input-group input:focus {
+            outline: none;
+            border-color: var(--gold);
+            box-shadow: 0 0 0 4px rgba(196, 148, 74, 0.08);
+            background: #fff;
+        }
+        .btn {
+            padding: 13px 26px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            font-family: var(--font-cn);
+            font-weight: 600;
+            cursor: pointer;
+            letter-spacing: 0.04em;
+            transition: all var(--transition);
+            white-space: nowrap;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #b5343a, #9a2d32);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(181, 52, 58, 0.28);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #c94046, #b5343a);
+            box-shadow: 0 6px 22px rgba(181, 52, 58, 0.38);
+            transform: translateY(-1px);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--gold);
+            color: #8b6914;
+        }
+        .btn-outline:hover {
+            background: #fef9f0;
+            border-color: #b8861e;
+        }
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.88rem;
+            border-radius: 20px;
+        }
+        .result-display {
+            margin-top: 18px;
+            padding: 18px 22px;
+            background: linear-gradient(135deg, #fefdf7, #fdf8ed);
+            border-radius: var(--radius-sm);
+            border: 1px dashed var(--gold-light);
+            text-align: center;
+            min-height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            transition: all var(--transition);
+        }
+        .result-display .big-char {
+            font-family: var(--font-display);
+            font-size: 2.4rem;
+            font-weight: 700;
+            color: var(--red);
+            letter-spacing: 0.08em;
+            animation: fadeInUp 0.45s ease;
+        }
+        .result-display .info-tag {
+            font-size: 0.88rem;
+            color: var(--text-light);
+            background: #fef9f0;
+            padding: 5px 12px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .calc-steps {
+            margin-top: 14px;
+            font-size: 0.84rem;
+            color: var(--text-light);
+            line-height: 1.7;
+            background: #fafaf6;
+            padding: 14px 18px;
+            border-radius: var(--radius-sm);
+            border-left: 4px solid var(--gold-light);
+            display: none;
+        }
+        .calc-steps code {
+            background: #fef9f0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Consolas', 'Menlo', monospace;
+            font-size: 0.82rem;
+            color: #8b6914;
+        }
+        .btn-row {
+            margin-top: 12px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* ---------- 六十甲子表 ---------- */
+        .table-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+        }
+        table.jiazi-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            min-width: 640px;
+            text-align: center;
+            letter-spacing: 0.03em;
+        }
+        table.jiazi-table th,
+        table.jiazi-table td {
+            padding: 10px 6px;
+            border: 1px solid #e8ddcc;
+            transition: all var(--transition);
+            cursor: default;
+        }
+        table.jiazi-table thead th {
+            background: #fdf8ef;
+            font-weight: 700;
+            color: #8b6914;
+            font-size: 0.82rem;
+            letter-spacing: 0.06em;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        table.jiazi-table tbody td {
+            background: #fffefb;
+            color: var(--text);
+            position: relative;
+        }
+        table.jiazi-table tbody td:hover {
+            background: #fef9ef;
+            transform: scale(1.05);
+            z-index: 3;
+            box-shadow: 0 5px 18px rgba(61, 43, 31, 0.16);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        table.jiazi-table tbody td.highlight-cell {
+            background: #fef3d6 !important;
+            color: #8b4d1a !important;
+            font-weight: 700 !important;
+            box-shadow: 0 0 0 4px #e8a020 inset !important;
+            border-radius: 4px;
+            animation: pulseHighlight 1.6s ease-in-out infinite;
+            z-index: 3;
+        }
+        @keyframes pulseHighlight {
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px #e8a02066 inset;
+            }
+            50% {
+                box-shadow: 0 0 0 8px #e8a02022 inset, 0 0 20px #e8a02044;
+            }
+        }
+        .col-header-tg {
+            font-weight: 700;
+            color: var(--jade);
+        }
+        .row-label {
+            font-weight: 600;
+            color: var(--text-light);
+            background: #fdfaf5 !important;
+            font-size: 0.8rem;
+        }
+
+        /* ---------- 历史示例 ---------- */
+        .example-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        .example-btn {
+            padding: 11px 20px;
+            background: #fffefb;
+            border: 2px solid var(--border);
+            border-radius: 28px;
+            cursor: pointer;
+            font-family: var(--font-cn);
+            font-size: 0.92rem;
+            letter-spacing: 0.04em;
+            transition: all var(--transition);
+            color: var(--text);
+        }
+        .example-btn:hover {
+            border-color: var(--gold);
+            background: #fef9f0;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 16px rgba(61, 43, 31, 0.1);
+        }
+        .example-btn .year-num {
+            font-weight: 700;
+            color: var(--red);
+        }
+        .example-btn .ganzhi {
+            color: #8b6914;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+            .card {
+                padding: 18px 16px;
+            }
+            .origin-card {
+                padding: 22px 16px 20px;
+            }
+            .origin-card::after {
+                left: 14px;
+                top: 30px;
+                bottom: 22px;
+            }
+            .origin-content {
+                padding-left: 18px;
+            }
+            .origin-content .lead-line {
+                font-size: 1.05rem;
+            }
+            .origin-content .body-text {
+                font-size: 0.88rem;
+                line-height: 1.85;
+            }
+            .origin-quote-mark {
+                font-size: 3.5rem;
+            }
+            .origin-quote-mark.open {
+                top: 4px;
+                left: 6px;
+            }
+            .origin-quote-mark.close {
+                bottom: -6px;
+                right: 10px;
+            }
+            .btn {
+                padding: 11px 18px;
+                font-size: 0.95rem;
+            }
+            .result-display .big-char {
+                font-size: 1.8rem;
+            }
+            .example-btn {
+                padding: 8px 14px;
+                font-size: 0.82rem;
+            }
+        }
+        @media (max-width: 480px) {
+            .calc-input-group {
+                flex-direction: column;
+            }
+            .calc-input-group input {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- ==================== 头部 ==================== -->
+        <header class="header">
+            <h1 class="title">天干地支 · 六十甲子</h1>
+            <p class="subtitle">干支纪年法查询系统 —— 年份计算 · 甲子表 · 历史示例</p>
+            <span class="badge">📅 首个甲子年对应公元4年</span>
+        </header>
+
+        <!-- ==================== 起源引言 ==================== -->
+        <section class="origin-card">
+            <span class="origin-quote-mark open">"</span>
+            <span class="origin-quote-mark close">"</span>
+            <div class="origin-content">
+                <p class="lead-line">
+                    伸出你的左手，在<strong>无名指根部的关节</strong>处标记上一个<span class="highlight-dz">子</span>字，
+                    然后顺时针沿着指节依次排开，<span class="highlight-dz">子、丑、寅、卯、辰、巳、午、未、申、酉、戌、亥</span>，这便是<span class="highlight-dz">十二地支</span>。
+                </p>
+                <p class="body-text">
+                    接着再从<strong>食指根部的指腹</strong>开始，依次标记<span class="highlight-tg">甲、乙、丙、丁、戊、己、庚、辛、壬、癸</span>，这便是<span class="highlight-tg">十天干</span>。
+                    将十天干和十二地支按顺序两两组合，便有了<span class="highlight-combo">甲子、乙丑、丙寅、丁卯</span>……
+                </p>
+                <p class="body-text">
+                    不过你发现一个问题：地支有<span class="highlight-key">12</span>个，而天干却只有<span class="highlight-key">10</span>个。当排到第10个组合<span class="highlight-combo">癸酉</span>时，十天干已经全部用完了。
+                    如果重新从甲子开始，那10年之后就会出现两个甲子年，显然不合理。于是天才的古人将它们重新接起来，<strong>错位组合</strong>——
+                    第11个组合变成了<span class="highlight-combo">甲戌</span>，第12个组合变成<span class="highlight-combo">乙亥</span>。
+                    这样一来，随着排列继续进行，十天干和十二地支会不断错位重组，直到<span class="highlight-sixty">60次之后，甲与子才会再次相遇</span>，这便是<span class="highlight-sixty">60年一甲子</span>的由来。
+                </p>
+            </div>
+        </section>
+
+        <!-- ==================== 年份计算器 ==================== -->
+        <section class="card">
+            <div class="card-title">
+                <span class="icon">🔢</span> 年份计算器
+            </div>
+            <div class="calc-input-group">
+                <input type="number" id="yearInput" placeholder="输入公元年份，如 1894" value="2024" min="-2000" max="9999" aria-label="输入公元年份">
+                <button class="btn btn-primary" id="calcBtn" aria-label="计算天干地支">🧮 计算干支</button>
+            </div>
+            <div class="result-display" id="resultDisplay">
+                <span style="color:var(--text-light);">👆 输入年份后点击计算</span>
+            </div>
+            <div class="calc-steps" id="calcSteps"></div>
+            <div class="btn-row">
+                <button class="btn btn-outline btn-sm" id="btnCurrentYear">📅 今年</button>
+                <button class="btn btn-outline btn-sm" id="btnRandomYear">🎲 随机年份</button>
+            </div>
+        </section>
+
+        <!-- ==================== 六十甲子完整组合表 ==================== -->
+        <section class="card">
+            <div class="card-title">
+                <span class="icon">📊</span> 六十甲子完整组合表
+            </div>
+            <p style="font-size:0.84rem;color:var(--text-light);margin-bottom:16px;">
+                天干（列）与地支（行）错位组合，<strong>60次循环</strong>后甲子重逢。每列天干相同，地支逐行递增。
+            </p>
+            <div class="table-scroll">
+                <table class="jiazi-table" id="jiaziTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th class="col-header-tg">甲</th>
+                            <th class="col-header-tg">乙</th>
+                            <th class="col-header-tg">丙</th>
+                            <th class="col-header-tg">丁</th>
+                            <th class="col-header-tg">戊</th>
+                            <th class="col-header-tg">己</th>
+                            <th class="col-header-tg">庚</th>
+                            <th class="col-header-tg">辛</th>
+                            <th class="col-header-tg">壬</th>
+                            <th class="col-header-tg">癸</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jiaziTableBody"></tbody>
+                </table>
+            </div>
+            <p style="font-size:0.76rem;color:var(--text-light);margin-top:12px;text-align:center;">
+                💡 点击表格中的任意组合，可自动计算并显示该组合对应的一个示例年份
+            </p>
+        </section>
+
+        <!-- ==================== 历史著名年份示例 ==================== -->
+        <section class="card">
+            <div class="card-title">
+                <span class="icon">📜</span> 历史著名年份示例
+            </div>
+            <div class="example-buttons" id="exampleButtons">
+                <button class="example-btn" data-year="1894">
+                    <span class="year-num">1894</span> 年 · <span class="ganzhi">甲午年</span> 🐴 中日甲午战争
+                </button>
+                <button class="example-btn" data-year="1911">
+                    <span class="year-num">1911</span> 年 · <span class="ganzhi">辛亥年</span> 🐷 辛亥革命
+                </button>
+                <button class="example-btn" data-year="1949">
+                    <span class="year-num">1949</span> 年 · <span class="ganzhi">己丑年</span> 🐂 新中国成立
+                </button>
+                <button class="example-btn" data-year="1978">
+                    <span class="year-num">1978</span> 年 · <span class="ganzhi">戊午年</span> 🐴 改革开放
+                </button>
+                <button class="example-btn" data-year="2000">
+                    <span class="year-num">2000</span> 年 · <span class="ganzhi">庚辰年</span> 🐉 千禧年
+                </button>
+                <button class="example-btn" data-year="2008">
+                    <span class="year-num">2008</span> 年 · <span class="ganzhi">戊子年</span> 🐭 北京奥运
+                </button>
+                <button class="example-btn" data-year="2020">
+                    <span class="year-num">2020</span> 年 · <span class="ganzhi">庚子年</span> 🐭 新冠疫情
+                </button>
+                <button class="example-btn" data-year="2024">
+                    <span class="year-num">2024</span> 年 · <span class="ganzhi">甲辰年</span> 🐉 当前年份
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        (function() {
+            // ============ 常量 ============
+            const TIAN_GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+            const DI_ZHI = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+            const SHENG_XIAO = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
+            const SHENG_XIAO_EMOJI = ['🐭', '🐮', '🐯', '🐰', '🐲', '🐍', '🐴', '🐏', '🐵', '🐔', '🐶', '🐷'];
+
+            // ============ DOM 元素 ============
+            const yearInput = document.getElementById('yearInput');
+            const calcBtn = document.getElementById('calcBtn');
+            const resultDisplay = document.getElementById('resultDisplay');
+            const calcSteps = document.getElementById('calcSteps');
+            const jiaziTableBody = document.getElementById('jiaziTableBody');
+            const btnCurrentYear = document.getElementById('btnCurrentYear');
+            const btnRandomYear = document.getElementById('btnRandomYear');
+
+            // ============ 计算干支 ============
+            function calculateGanzhi(year) {
+                const adjustedYear = year - 3;
+                const tgRemainder = adjustedYear % 10;
+                const dzRemainder = adjustedYear % 12;
+
+                const tgIndex = tgRemainder === 0 ? 9 : tgRemainder - 1;
+                const dzIndex = dzRemainder === 0 ? 11 : dzRemainder - 1;
+
+                return {
+                    year: year,
+                    adjustedYear: adjustedYear,
+                    tgRemainder: tgRemainder === 0 ? 10 : tgRemainder,
+                    dzRemainder: dzRemainder === 0 ? 12 : dzRemainder,
+                    tgIndex: tgIndex,
+                    dzIndex: dzIndex,
+                    tianGan: TIAN_GAN[tgIndex],
+                    diZhi: DI_ZHI[dzIndex],
+                    ganzhi: TIAN_GAN[tgIndex] + DI_ZHI[dzIndex],
+                    shengxiao: SHENG_XIAO[dzIndex],
+                    shengxiaoEmoji: SHENG_XIAO_EMOJI[dzIndex],
+                };
+            }
+
+            // ============ 更新显示 ============
+            function updateDisplay(result) {
+                resultDisplay.innerHTML = `
+                    <span class="big-char">${result.ganzhi}</span>
+                    <span style="font-size:1.4rem;">${result.shengxiaoEmoji}</span>
+                    <span class="info-tag">${result.shengxiao}年</span>
+                    <span class="info-tag">天干：${result.tianGan}（第${result.tgIndex + 1}位）</span>
+                    <span class="info-tag">地支：${result.diZhi}（第${result.dzIndex + 1}位）</span>
+                `;
+
+                calcSteps.style.display = 'block';
+                calcSteps.innerHTML = `
+                    <strong>📐 计算步骤：</strong><br>
+                    ① 年份减去3：<code>${result.year} - 3 = ${result.adjustedYear}</code><br>
+                    ② 除以10取余数：<code>${result.adjustedYear} ÷ 10 = ${Math.floor(result.adjustedYear / 10)} 余 ${result.tgRemainder}</code> → 对应天干第<strong>${result.tgRemainder}</strong>位：<strong style="color:#b5343a;">${result.tianGan}</strong><br>
+                    ③ 除以12取余数：<code>${result.adjustedYear} ÷ 12 = ${Math.floor(result.adjustedYear / 12)} 余 ${result.dzRemainder}</code> → 对应地支第<strong>${result.dzRemainder}</strong>位：<strong style="color:#b5343a;">${result.diZhi}</strong><br>
+                    ④ 组合结果：<strong style="color:#b5343a;font-size:1.1em;">${result.ganzhi}年</strong>（${result.shengxiaoEmoji} ${result.shengxiao}年）
+                `;
+
+                yearInput.value = result.year;
+                highlightJiaziTable(result.ganzhi);
+            }
+
+            function highlightJiaziTable(ganzhi) {
+                const allCells = jiaziTableBody.querySelectorAll('td');
+                allCells.forEach(cell => cell.classList.remove('highlight-cell'));
+
+                const targetCell = jiaziTableBody.querySelector(`td[data-ganzhi="${ganzhi}"]`);
+                if (targetCell) {
+                    targetCell.classList.add('highlight-cell');
+                    targetCell.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                }
+            }
+
+            // ============ 构建六十甲子表 ============
+            function buildJiaziTable() {
+                jiaziTableBody.innerHTML = '';
+
+                for (let row = 0; row < 6; row++) {
+                    const tr = document.createElement('tr');
+
+                    const rowLabel = document.createElement('td');
+                    rowLabel.className = 'row-label';
+                    rowLabel.textContent = `第${row + 1}轮`;
+                    tr.appendChild(rowLabel);
+
+                    for (let col = 0; col < 10; col++) {
+                        const idx = row * 10 + col;
+                        const tgIdx = idx % 10;
+                        const dzIdx = idx % 12;
+                        const ganzhi = TIAN_GAN[tgIdx] + DI_ZHI[dzIdx];
+
+                        const td = document.createElement('td');
+                        td.textContent = ganzhi;
+                        td.dataset.ganzhi = ganzhi;
+                        td.dataset.order = idx + 1;
+                        td.dataset.tgIdx = tgIdx;
+                        td.dataset.dzIdx = dzIdx;
+                        td.title = `第${idx + 1}个组合：${ganzhi} | 天干${TIAN_GAN[tgIdx]} + 地支${DI_ZHI[dzIdx]}（${SHENG_XIAO[dzIdx]}）`;
+
+                        td.addEventListener('click', () => {
+                            const baseYear = 4;
+                            let displayYear = baseYear + idx;
+                            while (displayYear < 1800) displayYear += 60;
+                            if (displayYear > 2100) displayYear = baseYear + idx;
+
+                            yearInput.value = displayYear;
+                            const result = calculateGanzhi(displayYear);
+                            updateDisplay(result);
+
+                            document.querySelector('.card').scrollIntoView({ behavior: 'smooth',
+                                block: 'start' });
+                        });
+
+                        tr.appendChild(td);
+                    }
+                    jiaziTableBody.appendChild(tr);
+                }
+            }
+
+            // ============ 事件处理 ============
+            function handleCalculate() {
+                const yearStr = yearInput.value.trim();
+                if (!yearStr) {
+                    alert('请输入一个公元年份');
+                    return;
+                }
+                const year = parseInt(yearStr, 10);
+                if (isNaN(year)) {
+                    alert('请输入有效的数字年份');
+                    return;
+                }
+                if (year < -2000 || year > 9999) {
+                    alert('年份范围建议在 -2000 到 9999 之间');
+                    return;
+                }
+                const result = calculateGanzhi(year);
+                updateDisplay(result);
+            }
+
+            calcBtn.addEventListener('click', handleCalculate);
+            yearInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') handleCalculate();
+            });
+
+            btnCurrentYear.addEventListener('click', () => {
+                const currentYear = new Date().getFullYear();
+                yearInput.value = currentYear;
+                const result = calculateGanzhi(currentYear);
+                updateDisplay(result);
+            });
+
+            btnRandomYear.addEventListener('click', () => {
+                const randomYear = Math.floor(Math.random() * 3000) - 500;
+                yearInput.value = randomYear;
+                const result = calculateGanzhi(randomYear);
+                updateDisplay(result);
+            });
+
+            document.getElementById('exampleButtons').addEventListener('click', (e) => {
+                const btn = e.target.closest('.example-btn');
+                if (!btn) return;
+                const year = parseInt(btn.dataset.year, 10);
+                if (!isNaN(year)) {
+                    yearInput.value = year;
+                    const result = calculateGanzhi(year);
+                    updateDisplay(result);
+                    document.querySelector('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+
+            // ============ 初始化 ============
+            function init() {
+                buildJiaziTable();
+
+                const defaultYear = 2024;
+                yearInput.value = defaultYear;
+                const result = calculateGanzhi(defaultYear);
+                updateDisplay(result);
+            }
+
+            init();
+
+            console.log('✅ 天干地支六十甲子查询系统已就绪');
+            console.log('   📖 起源引言已加载');
+            console.log('   📊 六十甲子完整组合表已加载');
+            console.log('   🔢 年份计算器已就绪（公式：年份-3后分别÷10和÷12取余数）');
+            console.log('   📜 历史著名年份示例按钮可用');
+            console.log('   💡 点击甲子表中的任意组合可查看对应年份');
+        })();
+    </script>
+</body>
+</html>

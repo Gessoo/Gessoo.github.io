@@ -1,190 +1,605 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>欧洲分区互动地图</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>欧洲分区互动地图（含塞浦路斯）</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin:0; padding:0; font-family:'Microsoft YaHei',sans-serif; }
-        #map { height:100vh; width:100%; background:#aad3df; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Microsoft YaHei', sans-serif; }
+        #map { height: 100vh; width: 100%; background: #aad3df; }
+
         #control-panel {
-            position:absolute; top:20px; right:20px; z-index:1000;
-            background:white; padding:15px; border-radius:8px;
-            box-shadow:0 0 15px rgba(0,0,0,0.2); max-width:200px;
+            position: absolute; top: 20px; right: 20px; z-index: 1000;
+            background: rgba(255, 255, 255, 0.95); padding: 12px 14px; border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15); max-width: 190px; backdrop-filter: blur(4px);
         }
-        h3 { margin-top:0; font-size:16px; text-align:center; color:#333; }
+        #control-panel h3 { margin: 0 0 8px 0; font-size: 15px; text-align: center; color: #2c3e50; }
         .btn {
-            display:block; width:100%; padding:8px 0; margin-bottom:5px;
-            border:none; background:#f0f0f0; cursor:pointer;
-            border-radius:4px; transition:0.3s; font-size:14px;
+            display: block; width: 100%; padding: 6px 0; margin-bottom: 4px; border: none;
+            background: #f0f2f5; cursor: pointer; border-radius: 4px; font-size: 13px;
+            transition: 0.2s; color: #2c3e50; text-align: left; padding-left: 10px;
         }
-        .btn:hover { background:#e0e0e0; }
-        .btn.active { background:#ff5722; color:white; font-weight:bold; }
+        .btn:hover { background: #e2e6eb; }
+        .btn.active { background: #ff5722; color: #fff; font-weight: 700; }
+        .btn-reset { margin-top: 6px; border: 1px solid #ccc; background: #f8f9fa; text-align: center; }
+
         #info-box {
-            position:absolute; bottom:20px; left:20px; z-index:1000;
-            background:rgba(255,255,255,0.9); padding:10px 20px;
-            border-radius:4px; box-shadow:0 0 10px rgba(0,0,0,0.1);
-            font-size:14px; pointer-events:none;
+            position: absolute; bottom: 20px; left: 20px; z-index: 1000;
+            background: rgba(255, 255, 255, 0.92); padding: 8px 16px; border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); font-size: 14px; pointer-events: none;
+            max-width: 400px; border-left: 4px solid #ff5722; color: #1e2a3a;
         }
-        .home-link {
-            position:absolute; top:20px; left:20px; z-index:1000;
-            background:white; padding:8px 14px; border-radius:6px;
-            font-size:13px; text-decoration:none; color:#333;
-            box-shadow:0 0 10px rgba(0,0,0,0.1);
+
+        .top-left {
+            position: absolute; top: 20px; left: 20px; z-index: 1000;
+            display: flex; flex-direction: column; gap: 6px; pointer-events: none;
+        }
+        .top-left>* { pointer-events: auto; }
+        .home-link, .toggle-panel-btn {
+            background: rgba(255, 255, 255, 0.95); padding: 6px 14px; border-radius: 6px;
+            font-size: 13px; text-decoration: none; color: #2c3e50;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); border: none; cursor: pointer;
+            font-family: inherit; backdrop-filter: blur(4px);
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .toggle-panel-btn .badge {
+            background: #ff5722; color: #fff; font-size: 11px; border-radius: 10px;
+            padding: 0 8px; line-height: 18px; font-weight: 700;
+        }
+
+        .info-panel {
+            position: absolute; top: 80px; left: 20px; z-index: 999;
+            width: 360px; max-height: calc(100vh - 190px);
+            background: rgba(255, 255, 255, 0.97); backdrop-filter: blur(8px);
+            border-radius: 10px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+            padding: 0; overflow: hidden;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            transform: translateX(-110%); opacity: 0; pointer-events: none;
+            display: flex; flex-direction: column;
+        }
+        .info-panel.open { transform: translateX(0); opacity: 1; pointer-events: auto; }
+        .panel-header {
+            display: flex; justify-content: space-between; padding: 12px 18px 8px 18px;
+            border-bottom: 1px solid #eef2f6; flex-shrink: 0;
+        }
+        .panel-header h2 { margin: 0; font-size: 16px; font-weight: 700; color: #1e2a3a; }
+        .panel-header h2 span { font-weight: 400; font-size: 13px; color: #6b7a8d; }
+        .close-panel-btn {
+            background: none; border: none; font-size: 20px; cursor: pointer;
+            color: #8b9aab; padding: 0 4px;
+        }
+        .close-panel-btn:hover { color: #e74c3c; }
+        .panel-body {
+            padding: 10px 18px 18px; overflow-y: auto; flex: 1;
+        }
+        .panel-body::-webkit-scrollbar { width: 4px; }
+        .panel-body::-webkit-scrollbar-thumb { background: #cdd4dc; border-radius: 4px; }
+
+        .region-tags {
+            display: flex; flex-wrap: wrap; gap: 4px 8px;
+            margin-bottom: 10px; padding-bottom: 8px;
+            border-bottom: 1px dashed #e8edf2; font-size: 12px;
+        }
+        .region-tags span {
+            padding: 2px 10px; border-radius: 12px; background: #f0f2f5; font-weight: 500;
+        }
+        .region-block { margin-bottom: 12px; }
+        .region-block:last-child { margin-bottom: 0; }
+        .region-title {
+            font-weight: 700; font-size: 14px; display: flex;
+            justify-content: space-between; color: #1e2a3a;
+        }
+        .region-title .dot {
+            display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+            margin-right: 6px;
+        }
+        .region-title .count {
+            font-weight: 400; color: #6b7a8d; font-size: 13px;
+        }
+        .country-list {
+            font-size: 13px; line-height: 1.6; padding-left: 18px;
+            margin: 2px 0 0; color: #2c3e50;
+        }
+        .country-list .sub {
+            display: block; font-weight: 500; color: #3d4f60;
+        }
+        .country-list .sub .label { font-weight: 600; }
+        .country-list .note { color: #7a8a9b; font-size: 12px; }
+        .panel-footnote {
+            margin-top: 10px; padding-top: 10px; border-top: 1px solid #e8edf2;
+            font-size: 12px; color: #5a6a7a; line-height: 1.5;
+        }
+
+        /* 标签样式 */
+        .country-label {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #222;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+            white-space: nowrap;
+            pointer-events: auto;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            text-shadow: 0 0 2px white;
+        }
+        .country-label:hover {
+            background: #ff5722;
+            color: white;
+            transform: scale(1.05);
+            border-color: #ff5722;
+        }
+        .country-label.active-label {
+            background: #ff5722;
+            color: white;
+            border-color: #ff5722;
+            font-weight: 700;
+        }
+
+        @media (max-width: 700px) {
+            .info-panel { width: calc(100vw - 40px); max-height: calc(100vh - 170px); }
+            #control-panel { max-width: 160px; padding: 10px 12px; top: 14px; right: 14px; }
+            .top-left { top: 14px; left: 14px; }
+            .home-link, .toggle-panel-btn { font-size: 12px; padding: 5px 10px; }
+            #info-box { font-size: 12px; padding: 6px 12px; max-width: 260px; }
+            .country-label { font-size: 10px; padding: 1px 4px; }
+        }
+        @media (max-width: 480px) {
+            #control-panel { max-width: 130px; padding: 8px 8px; }
+            .btn { font-size: 11px; padding: 4px 0; padding-left: 6px; }
+            .info-panel { width: calc(100vw - 24px); left: 12px; top: 68px; max-height: calc(100vh - 150px); }
+            .panel-header h2 { font-size: 14px; }
+            .country-list { font-size: 12px; }
+            .country-label { font-size: 9px; padding: 1px 3px; }
         }
     </style>
 </head>
 <body>
-    <a href="index.html" class="home-link">🏠 返回首页</a>
+
+    <!-- 左上 -->
+    <div class="top-left">
+        <a href="index.html" class="home-link">🏠 返回首页</a>
+        <button class="toggle-panel-btn" id="togglePanelBtn">📖 国家列表 <span class="badge">45</span></button>
+    </div>
+
+    <!-- 地图 -->
     <div id="map"></div>
+
+    <!-- 右上控制 -->
     <div id="control-panel">
         <h3>🇪🇺 欧洲分区</h3>
-        <button class="btn" data-region="North Europe" onclick="highlightRegion('North Europe')">北欧 (5国)</button>
-        <button class="btn" data-region="East Europe" onclick="highlightRegion('East Europe')">东欧 (7国)</button>
-        <button class="btn" data-region="Central Europe" onclick="highlightRegion('Central Europe')">中欧 (8国)</button>
-        <button class="btn" data-region="West Europe" onclick="highlightRegion('West Europe')">西欧 (7国)</button>
-        <button class="btn" data-region="South Europe" onclick="highlightRegion('South Europe')">南欧 (17国)</button>
-        <button class="btn" style="margin-top:10px; border:1px solid #ccc;" onclick="resetMap()">重置视图</button>
+        <button class="btn" data-region="North Europe">北欧 (5)</button>
+        <button class="btn" data-region="East Europe">东欧 (7)</button>
+        <button class="btn" data-region="Central Europe">中欧 (8)</button>
+        <button class="btn" data-region="West Europe">西欧 (7)</button>
+        <button class="btn" data-region="South Europe">南欧 (18)</button> <!-- 更新计数，包含塞浦路斯 -->
+        <button class="btn btn-reset">↺ 重置</button>
     </div>
-    <div id="info-box">正在加载欧洲边界数据...</div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- 信息框 -->
+    <div id="info-box">正在加载欧洲边界数据…</div>
+
+    <!-- 侧边栏 -->
+    <div class="info-panel" id="infoPanel">
+        <div class="panel-header">
+            <h2>🌍 欧洲 45 国 <span>分区</span></h2>
+            <button class="close-panel-btn" id="closePanelBtn">✕</button>
+        </div>
+        <div class="panel-body">
+            <div class="region-tags">
+                <span style="background:#dbeafe;color:#1a4a8a;">北欧</span>
+                <span style="background:#fde8e8;color:#a93226;">东欧</span>
+                <span style="background:#d5f5e3;color:#1a7a42;">中欧</span>
+                <span style="background:#ebdef0;color:#6c3483;">西欧</span>
+                <span style="background:#fdebd0;color:#b9770e;">南欧</span>
+            </div>
+
+            <div class="region-block">
+                <div class="region-title"><span><span class="dot" style="background:#3b82f6;"></span>北欧</span><span class="count">5 国</span></div>
+                <div class="country-list">芬兰 (Finland)、瑞典 (Sweden)、挪威 (Norway)、冰岛 (Iceland)、丹麦 (Denmark)</div>
+            </div>
+            <div class="region-block">
+                <div class="region-title"><span><span class="dot" style="background:#e74c3c;"></span>东欧</span><span class="count">7 国</span></div>
+                <div class="country-list">爱沙尼亚 (Estonia)、拉脱维亚 (Latvia)、立陶宛 (Lithuania)、白俄罗斯 (Belarus)、俄罗斯 (Russia)、乌克兰 (Ukraine)、摩尔多瓦 (Moldova)</div>
+            </div>
+            <div class="region-block">
+                <div class="region-title"><span><span class="dot" style="background:#27ae60;"></span>中欧</span><span class="count">8 国</span></div>
+                <div class="country-list">德国 (Germany)、波兰 (Poland)、捷克 (Czech Republic)、斯洛伐克 (Slovakia)、奥地利 (Austria)、匈牙利 (Hungary)、瑞士 (Switzerland)、列支敦士登 (Liechtenstein，<span class="note">袖珍富国</span>)</div>
+            </div>
+            <div class="region-block">
+                <div class="region-title"><span><span class="dot" style="background:#8e44ad;"></span>西欧</span><span class="count">7 国</span></div>
+                <div class="country-list">英国 (United Kingdom)、爱尔兰 (Ireland)、荷兰 (Netherlands)、比利时 (Belgium)、卢森堡 (Luxembourg)、法国 (France)、摩纳哥 (Monaco)</div>
+            </div>
+            <div class="region-block">
+                <div class="region-title"><span><span class="dot" style="background:#f39c12;"></span>南欧</span><span class="count">18 国</span></div>
+                <div class="country-list">
+                    <span class="sub"><span class="label">西边 3：</span>西班牙 (Spain)、葡萄牙 (Portugal)、安道尔 (Andorra)</span>
+                    <span class="sub"><span class="label">中间 4：</span>意大利 (Italy)、梵蒂冈 (Vatican City)、圣马力诺 (San Marino)、马耳他 (Malta)</span>
+                    <span class="sub"><span class="label">巴尔干西部 5：</span>斯洛文尼亚 (Slovenia)、克罗地亚 (Croatia)、波黑 (Bosnia and Herzegovina，<span class="note">简称波黑</span>)、黑山 (Montenegro)、阿尔巴尼亚 (Albania)</span>
+                    <span class="sub"><span class="label">巴尔干东部 5：</span>罗马尼亚 (Romania)、保加利亚 (Bulgaria)、塞尔维亚 (Serbia)、北马其顿 (North Macedonia)、希腊 (Greece，<span class="note">文明发源地</span>)</span>
+                    <span class="sub"><span class="label">地中海岛国 1：</span>塞浦路斯 (Cyprus) <span class="note">（地理亚洲，政治欧洲）</span></span>
+                </div>
+            </div>
+            <div class="panel-footnote">
+                <span style="color:#6b7a8d;">广义西欧包括北欧、西欧、中欧、南欧。</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
     <script>
-        var map = L.map('map').setView([54, 15], 4);  // 欧洲中心
-        L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
-            subdomains: ['1','2','3','4'],
-            attribution: '© 高德地图'
-        }).addTo(map);
-
-        // ---------- 欧洲区域定义 ----------
+        // ======================== 数据 ========================
         const regions = {
             "North Europe": ["Finland", "Sweden", "Norway", "Iceland", "Denmark"],
             "East Europe": ["Estonia", "Latvia", "Lithuania", "Belarus", "Russia", "Ukraine", "Moldova"],
-            "Central Europe": ["Germany", "Poland", "Czech Republic", "Slovakia", "Austria", "Hungary", "Switzerland", "Liechtenstein"],
+            "Central Europe": ["Germany", "Poland", "Czechia", "Slovakia", "Austria", "Hungary", "Switzerland",
+                "Liechtenstein"
+            ],
             "West Europe": ["United Kingdom", "Ireland", "Netherlands", "Belgium", "Luxembourg", "France", "Monaco"],
-            "South Europe": ["Spain", "Portugal", "Andorra", "Italy", "Vatican City", "San Marino", "Malta", "Slovenia", "Croatia", "Bosnia and Herzegovina", "Montenegro", "Albania", "Romania", "Bulgaria", "Serbia", "North Macedonia", "Greece"]
+            "South Europe": ["Spain", "Portugal", "Andorra", "Italy", "Vatican City", "San Marino", "Malta", "Slovenia",
+                "Croatia", "Bosnia and Herzegovina", "Montenegro", "Albania", "Romania", "Bulgaria", "Serbia",
+                "North Macedonia", "Greece", "Cyprus"  // 新增塞浦路斯
+            ]
         };
-        const regionNamesCN = {
-            "North Europe": "北欧", "East Europe": "东欧", "Central Europe": "中欧", "West Europe": "西欧", "South Europe": "南欧"
+        const regionCN = { "North Europe": "北欧", "East Europe": "东欧", "Central Europe": "中欧", "West Europe": "西欧",
+            "South Europe": "南欧" };
+        const countryCN = {
+            "Finland": "芬兰",
+            "Sweden": "瑞典",
+            "Norway": "挪威",
+            "Iceland": "冰岛",
+            "Denmark": "丹麦",
+            "Estonia": "爱沙尼亚",
+            "Latvia": "拉脱维亚",
+            "Lithuania": "立陶宛",
+            "Belarus": "白俄罗斯",
+            "Russia": "俄罗斯",
+            "Ukraine": "乌克兰",
+            "Moldova": "摩尔多瓦",
+            "Germany": "德国",
+            "Poland": "波兰",
+            "Czechia": "捷克",
+            "Slovakia": "斯洛伐克",
+            "Austria": "奥地利",
+            "Hungary": "匈牙利",
+            "Switzerland": "瑞士",
+            "Liechtenstein": "列支敦士登",
+            "United Kingdom": "英国",
+            "Ireland": "爱尔兰",
+            "Netherlands": "荷兰",
+            "Belgium": "比利时",
+            "Luxembourg": "卢森堡",
+            "France": "法国",
+            "Monaco": "摩纳哥",
+            "Spain": "西班牙",
+            "Portugal": "葡萄牙",
+            "Andorra": "安道尔",
+            "Italy": "意大利",
+            "Vatican City": "梵蒂冈",
+            "San Marino": "圣马力诺",
+            "Malta": "马耳他",
+            "Slovenia": "斯洛文尼亚",
+            "Croatia": "克罗地亚",
+            "Bosnia and Herzegovina": "波斯尼亚和黑塞哥维那",
+            "Montenegro": "黑山",
+            "Albania": "阿尔巴尼亚",
+            "Romania": "罗马尼亚",
+            "Bulgaria": "保加利亚",
+            "Serbia": "塞尔维亚",
+            "North Macedonia": "北马其顿",
+            "Greece": "希腊",
+            "Cyprus": "塞浦路斯"
         };
-        const countryNamesCN = {
-            "Finland":"芬兰","Sweden":"瑞典","Norway":"挪威","Iceland":"冰岛","Denmark":"丹麦",
-            "Estonia":"爱沙尼亚","Latvia":"拉脱维亚","Lithuania":"立陶宛","Belarus":"白俄罗斯","Russia":"俄罗斯","Ukraine":"乌克兰","Moldova":"摩尔多瓦",
-            "Germany":"德国","Poland":"波兰","Czech Republic":"捷克","Slovakia":"斯洛伐克","Austria":"奥地利","Hungary":"匈牙利","Switzerland":"瑞士","Liechtenstein":"列支敦士登",
-            "United Kingdom":"英国","Ireland":"爱尔兰","Netherlands":"荷兰","Belgium":"比利时","Luxembourg":"卢森堡","France":"法国","Monaco":"摩纳哥",
-            "Spain":"西班牙","Portugal":"葡萄牙","Andorra":"安道尔","Italy":"意大利","Vatican City":"梵蒂冈","San Marino":"圣马力诺","Malta":"马耳他",
-            "Slovenia":"斯洛文尼亚","Croatia":"克罗地亚","Bosnia and Herzegovina":"波黑","Montenegro":"黑山","Albania":"阿尔巴尼亚",
-            "Romania":"罗马尼亚","Bulgaria":"保加利亚","Serbia":"塞尔维亚","North Macedonia":"北马其顿","Greece":"希腊"
+
+        // 手动为小国指定标签坐标（包括塞浦路斯）
+        const labelCoords = {
+            "Liechtenstein": { lat: 47.1, lng: 9.5 },
+            "Andorra": { lat: 42.5, lng: 1.5 },
+            "Monaco": { lat: 43.7, lng: 7.4 },
+            "San Marino": { lat: 43.9, lng: 12.4 },
+            "Vatican City": { lat: 41.9, lng: 12.5 },
+            "Malta": { lat: 35.9, lng: 14.5 },
+            "Luxembourg": { lat: 49.8, lng: 6.1 },
+            "Slovenia": { lat: 46.1, lng: 14.8 },
+            "Montenegro": { lat: 42.4, lng: 19.3 },
+            "North Macedonia": { lat: 41.6, lng: 21.7 },
+            "Moldova": { lat: 47.0, lng: 28.5 },
+            "Belarus": { lat: 53.5, lng: 28.0 },
+            "Estonia": { lat: 58.6, lng: 25.0 },
+            "Latvia": { lat: 56.9, lng: 24.6 },
+            "Lithuania": { lat: 55.3, lng: 23.9 },
+            "Iceland": { lat: 64.8, lng: -18.5 },
+            "Ireland": { lat: 53.0, lng: -8.0 },
+            "United Kingdom": { lat: 55.0, lng: -3.0 },
+            "Netherlands": { lat: 52.0, lng: 5.0 },
+            "Belgium": { lat: 50.5, lng: 4.5 },
+            "Switzerland": { lat: 46.8, lng: 8.0 },
+            "Austria": { lat: 47.5, lng: 13.5 },
+            "Czechia": { lat: 50.0, lng: 14.5 },
+            "Poland": { lat: 52.0, lng: 19.0 },
+            "Germany": { lat: 51.0, lng: 10.0 },
+            "France": { lat: 47.0, lng: 2.0 },
+            "Spain": { lat: 40.0, lng: -3.5 },
+            "Portugal": { lat: 39.5, lng: -8.0 },
+            "Italy": { lat: 42.5, lng: 12.5 },
+            "Slovakia": { lat: 48.5, lng: 19.0 },
+            "Hungary": { lat: 47.0, lng: 19.0 },
+            "Croatia": { lat: 45.0, lng: 16.0 },
+            "Bosnia and Herzegovina": { lat: 44.0, lng: 18.0 },
+            "Albania": { lat: 41.0, lng: 20.0 },
+            "Romania": { lat: 46.0, lng: 25.0 },
+            "Bulgaria": { lat: 42.5, lng: 25.0 },
+            "Serbia": { lat: 44.0, lng: 21.0 },
+            "Greece": { lat: 39.0, lng: 22.0 },
+            "Denmark": { lat: 56.0, lng: 10.0 },
+            "Norway": { lat: 61.0, lng: 8.0 },
+            "Sweden": { lat: 60.0, lng: 15.0 },
+            "Finland": { lat: 64.0, lng: 26.0 },
+            "Ukraine": { lat: 49.0, lng: 31.0 },
+            "Russia": { lat: 60.0, lng: 40.0 },
+            "Cyprus": { lat: 35.1, lng: 33.4 }
         };
 
-        function getCountryCN(eng) { return countryNamesCN[eng] || eng; }
+        // 别名映射
+        const aliasMap = {
+            "Czech Rep.": "Czechia",
+            "Czech Republic": "Czechia",
+            "UK": "United Kingdom",
+            "Great Britain": "United Kingdom",
+            "Macedonia": "North Macedonia",
+            "Bosnia": "Bosnia and Herzegovina",
+            "Switzerland": "Switzerland",
+            "Netherlands": "Netherlands"
+        };
 
-        let geojsonLayer, currentActiveRegion = null, activeCountryLayers = [], countryClickedFlag = false;
+        function getCN(eng) { return countryCN[eng] || eng; }
 
-        function defaultStyle() { return { weight:1, color:'#999', dashArray:'3', fillOpacity:0.1, fillColor:'#eee' }; }
-        function highlightStyle() { return { weight:2, color:'#666', dashArray:'', fillOpacity:0.6, fillColor:'#ff5722' }; }
-        function dimStyle() { return { weight:1, color:'#ccc', dashArray:'', fillOpacity:0.05, fillColor:'#ddd' }; }
-
-        function getRegionByCountry(name) {
-            for (let r in regions) if (regions[r].includes(name)) return r;
+        function getRegion(name) {
+            let mapped = aliasMap[name];
+            if (mapped) name = mapped;
+            for (let r in regions) {
+                if (regions[r].includes(name)) return r;
+            }
             return null;
         }
 
-        function resetAllLayersToDefault() {
-            if (!geojsonLayer) return;
-            geojsonLayer.eachLayer(l => { l.setStyle(defaultStyle()); l.currentlyHighlighted = false; });
-            currentActiveRegion = null;
-            activeCountryLayers = [];
+        // ======================== 地图 ========================
+        const map = L.map('map').setView([54, 15], 4);
+        L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+            subdomains: ['1', '2', '3', '4']
+        }).addTo(map);
+
+        let geojsonLayer, currentRegion = null, clicked = false;
+        const labelMap = new Map();
+
+        const styleDefault = () => ({ weight: 1, color: '#999', dashArray: '3', fillOpacity: 0.1, fillColor: '#eee' });
+        const styleHighlight = () => ({ weight: 2, color: '#666', fillOpacity: 0.6, fillColor: '#ff5722' });
+        const styleDim = () => ({ weight: 1, color: '#ccc', fillOpacity: 0.05, fillColor: '#ddd' });
+
+        function clearLabelHighlights() {
+            labelMap.forEach((marker) => {
+                const el = marker.getElement();
+                if (el) el.classList.remove('active-label');
+            });
         }
 
-        window.highlightRegion = function(regionName) {
+        function highlightLabel(layer) {
+            clearLabelHighlights();
+            const marker = labelMap.get(layer);
+            if (marker) {
+                const el = marker.getElement();
+                if (el) el.classList.add('active-label');
+            }
+        }
+
+        function resetAll() {
             if (!geojsonLayer) return;
-            const targets = regions[regionName];
+            geojsonLayer.eachLayer(l => { l.setStyle(styleDefault());
+                l.highlighted = false; });
+            currentRegion = null;
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('info-box').innerText = '悬停查看国家，点击国家或标签高亮区域';
+            clearLabelHighlights();
+        }
+
+        window.highlightRegion = function(name) {
+            if (!geojsonLayer) return;
+            const targets = regions[name];
             if (!targets) return;
-            activeCountryLayers = [];
-            currentActiveRegion = regionName;
-            document.querySelectorAll('.btn').forEach(b => {
-                b.classList.toggle('active', b.getAttribute('data-region') === regionName);
-            });
+            currentRegion = name;
+            document.querySelectorAll('.btn').forEach(b => b.classList.toggle('active', b.dataset.region === name));
             geojsonLayer.eachLayer(l => {
-                const name = l.feature.properties.name || l.feature.properties.ADMIN;
-                if (targets.includes(name)) {
-                    l.setStyle(highlightStyle());
-                    l.currentlyHighlighted = true;
+                let n = l.feature.properties.name || l.feature.properties.ADMIN;
+                let mapped = aliasMap[n];
+                if (mapped) n = mapped;
+                if (targets.includes(n)) {
+                    l.setStyle(styleHighlight());
+                    l.highlighted = true;
                     l.bringToFront();
                 } else {
-                    l.setStyle(dimStyle());
-                    l.currentlyHighlighted = false;
+                    l.setStyle(styleDim());
+                    l.highlighted = false;
                 }
             });
-            document.getElementById('info-box').innerText = `当前展示分区：${regionNamesCN[regionName]}`;
+            clearLabelHighlights();
+            geojsonLayer.eachLayer(l => {
+                let n = l.feature.properties.name || l.feature.properties.ADMIN;
+                let mapped = aliasMap[n];
+                if (mapped) n = mapped;
+                if (targets.includes(n)) {
+                    const marker = labelMap.get(l);
+                    if (marker) {
+                        const el = marker.getElement();
+                        if (el) el.classList.add('active-label');
+                    }
+                }
+            });
+            document.getElementById('info-box').innerText = '当前分区：' + regionCN[name];
         };
 
-        window.resetMap = function() {
-            resetAllLayersToDefault();
+        function handleCountryClick(layer, nameEN) {
+            clicked = true;
+            setTimeout(() => clicked = false, 100);
+            let mappedName = aliasMap[nameEN] || nameEN;
+            geojsonLayer.eachLayer(l => {
+                l.setStyle(styleDefault());
+                l.highlighted = false;
+            });
+            clearLabelHighlights();
+            layer.setStyle(styleHighlight());
+            layer.highlighted = true;
+            layer.bringToFront();
+            const marker = labelMap.get(layer);
+            if (marker) {
+                const el = marker.getElement();
+                if (el) el.classList.add('active-label');
+            }
             document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('info-box').innerText = "悬停查看国家，点击国家或按钮高亮区域";
-        };
+            currentRegion = null;
+            const r = getRegion(mappedName);
+            const txt = r ? ' [' + regionCN[r] + ']' : '';
+            document.getElementById('info-box').innerText = '选中国家：' + getCN(mappedName) + ' ' + mappedName + txt;
+        }
 
+        // 加载 GeoJSON
         fetch('https://cdn.jsdelivr.net/gh/datasets/geo-countries@master/data/countries.geojson')
             .then(r => r.json())
             .then(data => {
                 geojsonLayer = L.geoJson(data, {
-                    onEachFeature: function(feature, layer) {
+                    onEachFeature: (feature, layer) => {
+                        const nameEN = feature.properties.name || feature.properties.ADMIN;
+                        layer.feature = feature;
                         layer.on({
-                            mouseover: function(e) {
-                                const nameEN = feature.properties.name || feature.properties.ADMIN;
-                                const regionKey = getRegionByCountry(nameEN);
-                                const regionText = regionKey ? ` [${regionNamesCN[regionKey]}]` : "";
-                                const nameCN = getCountryCN(nameEN);
-                                document.getElementById('info-box').innerText = 
-                                    `当前国家：${nameCN} ${nameEN}${regionText}`;
-                                if (!layer.currentlyHighlighted) {
-                                    layer.setStyle({ weight:2, color:'#444', fillOpacity:0.4, fillColor:'#666' });
+                            mouseover: e => {
+                                const r = getRegion(nameEN);
+                                const txt = r ? ' [' + regionCN[r] + ']' : '';
+                                document.getElementById('info-box').innerText = '当前国家：' + getCN(nameEN) +
+                                    ' ' + nameEN + txt;
+                                if (!layer.highlighted) {
+                                    layer.setStyle({ weight: 2, color: '#444', fillOpacity: 0.4,
+                                        fillColor: '#666' });
                                     layer.bringToFront();
                                 }
                             },
-                            mouseout: function(e) {
-                                if (!layer.currentlyHighlighted) {
-                                    if (currentActiveRegion) layer.setStyle(dimStyle());
-                                    else layer.setStyle(defaultStyle());
-                                } else layer.setStyle(highlightStyle());
+                            mouseout: e => {
+                                if (!layer.highlighted) {
+                                    layer.setStyle(currentRegion ? styleDim() : styleDefault());
+                                } else layer.setStyle(styleHighlight());
                             },
-                            click: function(e) {
-                                countryClickedFlag = true;
-                                setTimeout(() => countryClickedFlag = false, 100);
-                                const nameEN = feature.properties.name || feature.properties.ADMIN;
-                                document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-                                geojsonLayer.eachLayer(l => { l.setStyle(defaultStyle()); l.currentlyHighlighted = false; });
-                                currentActiveRegion = null;
-                                activeCountryLayers = [];
-                                layer.setStyle(highlightStyle());
-                                layer.currentlyHighlighted = true;
-                                layer.bringToFront();
-                                activeCountryLayers.push(layer);
-                                const regionKey = getRegionByCountry(nameEN);
-                                const regionText = regionKey ? ` [${regionNamesCN[regionKey]}]` : "";
-                                document.getElementById('info-box').innerText = 
-                                    `选中国家：${getCountryCN(nameEN)} ${nameEN}${regionText}`;
+                            click: e => {
+                                handleCountryClick(layer, nameEN);
                             }
                         });
                     }
                 });
-                geojsonLayer.eachLayer(l => l.setStyle(defaultStyle()));
+                geojsonLayer.eachLayer(l => l.setStyle(styleDefault()));
                 geojsonLayer.addTo(map);
-                document.getElementById('info-box').innerText = "数据加载完毕。点击国家或按钮高亮区域";
-            })
-            .catch(err => {
-                console.error(err);
-                document.getElementById('info-box').innerText = "错误：无法加载边界数据。";
-            });
 
-        map.on('click', function(e) {
-            if (countryClickedFlag) return;
-            resetMap();
-            document.getElementById('info-box').innerText = "未点中国家。请放大地图后点击国家区域内部。";
+                // ======== 为所有欧洲国家添加标签 ========
+                const europeNames = new Set();
+                for (let r in regions) {
+                    regions[r].forEach(n => europeNames.add(n));
+                }
+
+                geojsonLayer.eachLayer(layer => {
+                    const nameEN = layer.feature.properties.name || layer.feature.properties.ADMIN;
+                    let isEurope = europeNames.has(nameEN);
+                    if (!isEurope) {
+                        const mapped = aliasMap[nameEN];
+                        if (mapped && europeNames.has(mapped)) isEurope = true;
+                    }
+                    if (!isEurope) return;
+
+                    let coords = labelCoords[nameEN];
+                    if (!coords) {
+                        const mapped = aliasMap[nameEN];
+                        if (mapped && labelCoords[mapped]) coords = labelCoords[mapped];
+                    }
+                    if (!coords) {
+                        try {
+                            const center = layer.getBounds().getCenter();
+                            coords = { lat: center.lat, lng: center.lng };
+                        } catch (e) {
+                            return;
+                        }
+                    }
+
+                    const cnName = getCN(nameEN);
+                    const icon = L.divIcon({
+                        className: 'country-label',
+                        html: cnName,
+                        iconSize: [null, null],
+                        iconAnchor: [0, 0]
+                    });
+                    const marker = L.marker([coords.lat, coords.lng], {
+                        icon: icon,
+                        zIndexOffset: 1000,
+                        interactive: true,
+                        keyboard: false
+                    }).addTo(map);
+
+                    labelMap.set(layer, marker);
+
+                    marker.on('mouseover', function(e) {
+                        const r = getRegion(nameEN);
+                        const txt = r ? ' [' + regionCN[r] + ']' : '';
+                        document.getElementById('info-box').innerText = '当前国家：' + getCN(nameEN) + ' ' +
+                            nameEN + txt;
+                        if (!layer.highlighted) {
+                            layer.setStyle({ weight: 2, color: '#444', fillOpacity: 0.4,
+                            fillColor: '#666' });
+                            layer.bringToFront();
+                        }
+                    });
+                    marker.on('mouseout', function(e) {
+                        if (!layer.highlighted) {
+                            layer.setStyle(currentRegion ? styleDim() : styleDefault());
+                        } else layer.setStyle(styleHighlight());
+                    });
+                    marker.on('click', function(e) {
+                        L.DomEvent.stopPropagation(e);
+                        handleCountryClick(layer, nameEN);
+                    });
+                });
+
+                document.getElementById('info-box').innerText = '数据加载完毕。悬停查看国家，点击国家或标签高亮区域';
+            })
+            .catch(() => document.getElementById('info-box').innerText = '错误：无法加载边界数据。');
+
+        map.on('click', () => {
+            if (!clicked) {
+                resetAll();
+                document.getElementById('info-box').innerText = '未点中国家。请放大点击国家或标签。';
+            }
         });
+
+        document.querySelectorAll('.btn[data-region]').forEach(btn => {
+            btn.onclick = () => highlightRegion(btn.dataset.region);
+        });
+        document.querySelector('.btn-reset').onclick = resetAll;
+
+        // ======================== 侧边栏控制 ========================
+        const panel = document.getElementById('infoPanel');
+        const toggleBtn = document.getElementById('togglePanelBtn');
+        const closeBtn = document.getElementById('closePanelBtn');
+
+        function openPanel() { panel.classList.add('open');
+            toggleBtn.innerHTML = '📖 收起列表 <span class="badge">45</span>'; }
+
+        function closePanel() { panel.classList.remove('open');
+            toggleBtn.innerHTML = '📖 国家列表 <span class="badge">45</span>'; }
+        toggleBtn.onclick = e => { e.stopPropagation();
+            panel.classList.contains('open') ? closePanel() : openPanel(); };
+        closeBtn.onclick = e => { e.stopPropagation();
+            closePanel(); };
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
     </script>
+
 </body>
 </html>
