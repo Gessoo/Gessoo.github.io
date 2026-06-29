@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>欧洲分区互动地图（含塞浦路斯）</title>
+    <title>欧洲分区互动地图（含塞浦路斯，修正塞尔维亚/科索沃）</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * { box-sizing: border-box; }
@@ -112,7 +112,6 @@
             font-size: 12px; color: #5a6a7a; line-height: 1.5;
         }
 
-        /* 标签样式 */
         .country-label {
             background: rgba(255, 255, 255, 0.85);
             border: 1px solid #555;
@@ -161,30 +160,25 @@
 </head>
 <body>
 
-    <!-- 左上 -->
     <div class="top-left">
         <a href="index.html" class="home-link">🏠 返回首页</a>
         <button class="toggle-panel-btn" id="togglePanelBtn">📖 国家列表 <span class="badge">45</span></button>
     </div>
 
-    <!-- 地图 -->
     <div id="map"></div>
 
-    <!-- 右上控制 -->
     <div id="control-panel">
         <h3>🇪🇺 欧洲分区</h3>
         <button class="btn" data-region="North Europe">北欧 (5)</button>
         <button class="btn" data-region="East Europe">东欧 (7)</button>
         <button class="btn" data-region="Central Europe">中欧 (8)</button>
         <button class="btn" data-region="West Europe">西欧 (7)</button>
-        <button class="btn" data-region="South Europe">南欧 (18)</button> <!-- 更新计数，包含塞浦路斯 -->
+        <button class="btn" data-region="South Europe">南欧 (18)</button>
         <button class="btn btn-reset">↺ 重置</button>
     </div>
 
-    <!-- 信息框 -->
     <div id="info-box">正在加载欧洲边界数据…</div>
 
-    <!-- 侧边栏 -->
     <div class="info-panel" id="infoPanel">
         <div class="panel-header">
             <h2>🌍 欧洲 45 国 <span>分区</span></h2>
@@ -198,7 +192,6 @@
                 <span style="background:#ebdef0;color:#6c3483;">西欧</span>
                 <span style="background:#fdebd0;color:#b9770e;">南欧</span>
             </div>
-
             <div class="region-block">
                 <div class="region-title"><span><span class="dot" style="background:#3b82f6;"></span>北欧</span><span class="count">5 国</span></div>
                 <div class="country-list">芬兰 (Finland)、瑞典 (Sweden)、挪威 (Norway)、冰岛 (Iceland)、丹麦 (Denmark)</div>
@@ -221,8 +214,9 @@
                     <span class="sub"><span class="label">西边 3：</span>西班牙 (Spain)、葡萄牙 (Portugal)、安道尔 (Andorra)</span>
                     <span class="sub"><span class="label">中间 4：</span>意大利 (Italy)、梵蒂冈 (Vatican City)、圣马力诺 (San Marino)、马耳他 (Malta)</span>
                     <span class="sub"><span class="label">巴尔干西部 5：</span>斯洛文尼亚 (Slovenia)、克罗地亚 (Croatia)、波黑 (Bosnia and Herzegovina，<span class="note">简称波黑</span>)、黑山 (Montenegro)、阿尔巴尼亚 (Albania)</span>
-                    <span class="sub"><span class="label">巴尔干东部 5：</span>罗马尼亚 (Romania)、保加利亚 (Bulgaria)、塞尔维亚 (Serbia)、北马其顿 (North Macedonia)、希腊 (Greece，<span class="note">文明发源地</span>)</span>
+                    <span class="sub"><span class="label">巴尔干东部 5：</span>罗马尼亚 (Romania)、保加利亚 (Bulgaria)、塞尔维亚 (Republic of Serbia)、北马其顿 (North Macedonia)、希腊 (Greece，<span class="note">文明发源地</span>)</span>
                     <span class="sub"><span class="label">地中海岛国 1：</span>塞浦路斯 (Cyprus) <span class="note">（地理亚洲，政治欧洲）</span></span>
+                    <span class="sub"><span class="label">特别说明：</span>科索沃 (Kosovo) 是塞尔维亚自治省，中国政府不承认其独立</span>
                 </div>
             </div>
             <div class="panel-footnote">
@@ -231,73 +225,41 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-    </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // ======================== 数据 ========================
         const regions = {
             "North Europe": ["Finland", "Sweden", "Norway", "Iceland", "Denmark"],
             "East Europe": ["Estonia", "Latvia", "Lithuania", "Belarus", "Russia", "Ukraine", "Moldova"],
-            "Central Europe": ["Germany", "Poland", "Czechia", "Slovakia", "Austria", "Hungary", "Switzerland",
-                "Liechtenstein"
-            ],
+            "Central Europe": ["Germany", "Poland", "Czechia", "Slovakia", "Austria", "Hungary", "Switzerland", "Liechtenstein"],
             "West Europe": ["United Kingdom", "Ireland", "Netherlands", "Belgium", "Luxembourg", "France", "Monaco"],
-            "South Europe": ["Spain", "Portugal", "Andorra", "Italy", "Vatican City", "San Marino", "Malta", "Slovenia",
-                "Croatia", "Bosnia and Herzegovina", "Montenegro", "Albania", "Romania", "Bulgaria", "Serbia",
-                "North Macedonia", "Greece", "Cyprus"  // 新增塞浦路斯
+            "South Europe": [
+                "Spain", "Portugal", "Andorra", "Italy", "Vatican City", "San Marino", "Malta",
+                "Slovenia", "Croatia", "Bosnia and Herzegovina", "Montenegro", "Albania",
+                "Romania", "Bulgaria", "Republic of Serbia", "North Macedonia", "Greece",
+                "Cyprus", "Kosovo"   // 将科索沃视为塞尔维亚的一部分列入南欧
             ]
         };
-        const regionCN = { "North Europe": "北欧", "East Europe": "东欧", "Central Europe": "中欧", "West Europe": "西欧",
-            "South Europe": "南欧" };
+        const regionCN = { "North Europe": "北欧", "East Europe": "东欧", "Central Europe": "中欧", "West Europe": "西欧", "South Europe": "南欧" };
         const countryCN = {
-            "Finland": "芬兰",
-            "Sweden": "瑞典",
-            "Norway": "挪威",
-            "Iceland": "冰岛",
-            "Denmark": "丹麦",
-            "Estonia": "爱沙尼亚",
-            "Latvia": "拉脱维亚",
-            "Lithuania": "立陶宛",
-            "Belarus": "白俄罗斯",
-            "Russia": "俄罗斯",
-            "Ukraine": "乌克兰",
-            "Moldova": "摩尔多瓦",
-            "Germany": "德国",
-            "Poland": "波兰",
-            "Czechia": "捷克",
-            "Slovakia": "斯洛伐克",
-            "Austria": "奥地利",
-            "Hungary": "匈牙利",
-            "Switzerland": "瑞士",
-            "Liechtenstein": "列支敦士登",
-            "United Kingdom": "英国",
-            "Ireland": "爱尔兰",
-            "Netherlands": "荷兰",
-            "Belgium": "比利时",
-            "Luxembourg": "卢森堡",
-            "France": "法国",
-            "Monaco": "摩纳哥",
-            "Spain": "西班牙",
-            "Portugal": "葡萄牙",
-            "Andorra": "安道尔",
-            "Italy": "意大利",
-            "Vatican City": "梵蒂冈",
-            "San Marino": "圣马力诺",
-            "Malta": "马耳他",
-            "Slovenia": "斯洛文尼亚",
-            "Croatia": "克罗地亚",
-            "Bosnia and Herzegovina": "波斯尼亚和黑塞哥维那",
-            "Montenegro": "黑山",
-            "Albania": "阿尔巴尼亚",
-            "Romania": "罗马尼亚",
-            "Bulgaria": "保加利亚",
-            "Serbia": "塞尔维亚",
-            "North Macedonia": "北马其顿",
-            "Greece": "希腊",
-            "Cyprus": "塞浦路斯"
+            "Finland": "芬兰", "Sweden": "瑞典", "Norway": "挪威", "Iceland": "冰岛", "Denmark": "丹麦",
+            "Estonia": "爱沙尼亚", "Latvia": "拉脱维亚", "Lithuania": "立陶宛", "Belarus": "白俄罗斯",
+            "Russia": "俄罗斯", "Ukraine": "乌克兰", "Moldova": "摩尔多瓦",
+            "Germany": "德国", "Poland": "波兰", "Czechia": "捷克", "Slovakia": "斯洛伐克",
+            "Austria": "奥地利", "Hungary": "匈牙利", "Switzerland": "瑞士", "Liechtenstein": "列支敦士登",
+            "United Kingdom": "英国", "Ireland": "爱尔兰", "Netherlands": "荷兰", "Belgium": "比利时",
+            "Luxembourg": "卢森堡", "France": "法国", "Monaco": "摩纳哥",
+            "Spain": "西班牙", "Portugal": "葡萄牙", "Andorra": "安道尔",
+            "Italy": "意大利", "Vatican City": "梵蒂冈", "San Marino": "圣马力诺", "Malta": "马耳他",
+            "Slovenia": "斯洛文尼亚", "Croatia": "克罗地亚",
+            "Bosnia and Herzegovina": "波斯尼亚和黑塞哥维那", "Montenegro": "黑山", "Albania": "阿尔巴尼亚",
+            "Romania": "罗马尼亚", "Bulgaria": "保加利亚",
+            "Republic of Serbia": "塞尔维亚", "Serbia": "塞尔维亚",
+            "North Macedonia": "北马其顿", "Greece": "希腊", "Cyprus": "塞浦路斯",
+            "Kosovo": "科索沃"
         };
 
-        // 手动为小国指定标签坐标（包括塞浦路斯）
+        // 手动为小国指定标签坐标（包括科索沃）
         const labelCoords = {
             "Liechtenstein": { lat: 47.1, lng: 9.5 },
             "Andorra": { lat: 42.5, lng: 1.5 },
@@ -335,7 +297,7 @@
             "Albania": { lat: 41.0, lng: 20.0 },
             "Romania": { lat: 46.0, lng: 25.0 },
             "Bulgaria": { lat: 42.5, lng: 25.0 },
-            "Serbia": { lat: 44.0, lng: 21.0 },
+            "Republic of Serbia": { lat: 44.0, lng: 21.0 },
             "Greece": { lat: 39.0, lng: 22.0 },
             "Denmark": { lat: 56.0, lng: 10.0 },
             "Norway": { lat: 61.0, lng: 8.0 },
@@ -343,7 +305,8 @@
             "Finland": { lat: 64.0, lng: 26.0 },
             "Ukraine": { lat: 49.0, lng: 31.0 },
             "Russia": { lat: 60.0, lng: 40.0 },
-            "Cyprus": { lat: 35.1, lng: 33.4 }
+            "Cyprus": { lat: 35.1, lng: 33.4 },
+            "Kosovo": { lat: 42.6, lng: 20.8 }
         };
 
         // 别名映射
@@ -354,6 +317,7 @@
             "Great Britain": "United Kingdom",
             "Macedonia": "North Macedonia",
             "Bosnia": "Bosnia and Herzegovina",
+            "Serbia": "Republic of Serbia",   // 解决英文名不一致
             "Switzerland": "Switzerland",
             "Netherlands": "Netherlands"
         };
@@ -361,10 +325,9 @@
         function getCN(eng) { return countryCN[eng] || eng; }
 
         function getRegion(name) {
-            let mapped = aliasMap[name];
-            if (mapped) name = mapped;
+            let mapped = aliasMap[name] || name;
             for (let r in regions) {
-                if (regions[r].includes(name)) return r;
+                if (regions[r].includes(mapped)) return r;
             }
             return null;
         }
@@ -389,19 +352,9 @@
             });
         }
 
-        function highlightLabel(layer) {
-            clearLabelHighlights();
-            const marker = labelMap.get(layer);
-            if (marker) {
-                const el = marker.getElement();
-                if (el) el.classList.add('active-label');
-            }
-        }
-
         function resetAll() {
             if (!geojsonLayer) return;
-            geojsonLayer.eachLayer(l => { l.setStyle(styleDefault());
-                l.highlighted = false; });
+            geojsonLayer.eachLayer(l => { l.setStyle(styleDefault()); l.highlighted = false; });
             currentRegion = null;
             document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
             document.getElementById('info-box').innerText = '悬停查看国家，点击国家或标签高亮区域';
@@ -416,9 +369,8 @@
             document.querySelectorAll('.btn').forEach(b => b.classList.toggle('active', b.dataset.region === name));
             geojsonLayer.eachLayer(l => {
                 let n = l.feature.properties.name || l.feature.properties.ADMIN;
-                let mapped = aliasMap[n];
-                if (mapped) n = mapped;
-                if (targets.includes(n)) {
+                let mapped = aliasMap[n] || n;
+                if (targets.includes(mapped)) {
                     l.setStyle(styleHighlight());
                     l.highlighted = true;
                     l.bringToFront();
@@ -428,11 +380,11 @@
                 }
             });
             clearLabelHighlights();
+            // 高亮对应标签
             geojsonLayer.eachLayer(l => {
                 let n = l.feature.properties.name || l.feature.properties.ADMIN;
-                let mapped = aliasMap[n];
-                if (mapped) n = mapped;
-                if (targets.includes(n)) {
+                let mapped = aliasMap[n] || n;
+                if (targets.includes(mapped)) {
                     const marker = labelMap.get(l);
                     if (marker) {
                         const el = marker.getElement();
@@ -443,28 +395,56 @@
             document.getElementById('info-box').innerText = '当前分区：' + regionCN[name];
         };
 
+        // 核心：点击国家处理，包括塞尔维亚联动科索沃
         function handleCountryClick(layer, nameEN) {
             clicked = true;
             setTimeout(() => clicked = false, 100);
             let mappedName = aliasMap[nameEN] || nameEN;
+
+            // 确定需要高亮的国家列表
+            let highlightList = [mappedName];
+
+            // 特殊处理：塞尔维亚 -> 联动科索沃
+            if (mappedName === 'Republic of Serbia') {
+                highlightList.push('Kosovo');
+            }
+            // 科索沃单独处理，不联动塞尔维亚，仅高亮自身
+
             geojsonLayer.eachLayer(l => {
                 l.setStyle(styleDefault());
                 l.highlighted = false;
             });
             clearLabelHighlights();
-            layer.setStyle(styleHighlight());
-            layer.highlighted = true;
-            layer.bringToFront();
-            const marker = labelMap.get(layer);
-            if (marker) {
-                const el = marker.getElement();
-                if (el) el.classList.add('active-label');
-            }
+
+            // 高亮目标图层
+            geojsonLayer.eachLayer(l => {
+                let n = l.feature.properties.name || l.feature.properties.ADMIN;
+                let mapped = aliasMap[n] || n;
+                if (highlightList.includes(mapped)) {
+                    l.setStyle(styleHighlight());
+                    l.highlighted = true;
+                    l.bringToFront();
+                    const marker = labelMap.get(l);
+                    if (marker) {
+                        const el = marker.getElement();
+                        if (el) el.classList.add('active-label');
+                    }
+                }
+            });
+
             document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
             currentRegion = null;
-            const r = getRegion(mappedName);
-            const txt = r ? ' [' + regionCN[r] + ']' : '';
-            document.getElementById('info-box').innerText = '选中国家：' + getCN(mappedName) + ' ' + mappedName + txt;
+
+            // 信息框文本
+            if (mappedName === 'Kosovo') {
+                document.getElementById('info-box').innerText = '选中国家：科索沃 Kosovo [塞尔维亚自治省]';
+            } else if (mappedName === 'Republic of Serbia') {
+                document.getElementById('info-box').innerText = '选中国家：塞尔维亚 Republic of Serbia (含科索沃) [南欧]';
+            } else {
+                const r = getRegion(mappedName);
+                const txt = r ? ' [' + regionCN[r] + ']' : '';
+                document.getElementById('info-box').innerText = '选中国家：' + getCN(mappedName) + ' ' + mappedName + txt;
+            }
         }
 
         // 加载 GeoJSON
@@ -477,13 +457,17 @@
                         layer.feature = feature;
                         layer.on({
                             mouseover: e => {
-                                const r = getRegion(nameEN);
-                                const txt = r ? ' [' + regionCN[r] + ']' : '';
-                                document.getElementById('info-box').innerText = '当前国家：' + getCN(nameEN) +
-                                    ' ' + nameEN + txt;
+                                const mapped = aliasMap[nameEN] || nameEN;
+                                let regionText = '';
+                                if (mapped === 'Kosovo') {
+                                    regionText = ' [塞尔维亚自治省]';
+                                } else {
+                                    const r = getRegion(nameEN);
+                                    regionText = r ? ' [' + regionCN[r] + ']' : '';
+                                }
+                                document.getElementById('info-box').innerText = '当前国家：' + getCN(mapped) + ' ' + nameEN + regionText;
                                 if (!layer.highlighted) {
-                                    layer.setStyle({ weight: 2, color: '#444', fillOpacity: 0.4,
-                                        fillColor: '#666' });
+                                    layer.setStyle({ weight: 2, color: '#444', fillOpacity: 0.4, fillColor: '#666' });
                                     layer.bringToFront();
                                 }
                             },
@@ -509,18 +493,10 @@
 
                 geojsonLayer.eachLayer(layer => {
                     const nameEN = layer.feature.properties.name || layer.feature.properties.ADMIN;
-                    let isEurope = europeNames.has(nameEN);
-                    if (!isEurope) {
-                        const mapped = aliasMap[nameEN];
-                        if (mapped && europeNames.has(mapped)) isEurope = true;
-                    }
-                    if (!isEurope) return;
+                    const mapped = aliasMap[nameEN] || nameEN;
+                    if (!europeNames.has(mapped)) return;
 
-                    let coords = labelCoords[nameEN];
-                    if (!coords) {
-                        const mapped = aliasMap[nameEN];
-                        if (mapped && labelCoords[mapped]) coords = labelCoords[mapped];
-                    }
+                    let coords = labelCoords[mapped] || labelCoords[nameEN];
                     if (!coords) {
                         try {
                             const center = layer.getBounds().getCenter();
@@ -530,7 +506,7 @@
                         }
                     }
 
-                    const cnName = getCN(nameEN);
+                    const cnName = getCN(mapped);
                     const icon = L.divIcon({
                         className: 'country-label',
                         html: cnName,
@@ -547,13 +523,16 @@
                     labelMap.set(layer, marker);
 
                     marker.on('mouseover', function(e) {
-                        const r = getRegion(nameEN);
-                        const txt = r ? ' [' + regionCN[r] + ']' : '';
-                        document.getElementById('info-box').innerText = '当前国家：' + getCN(nameEN) + ' ' +
-                            nameEN + txt;
+                        let regionText = '';
+                        if (mapped === 'Kosovo') {
+                            regionText = ' [塞尔维亚自治省]';
+                        } else {
+                            const r = getRegion(nameEN);
+                            regionText = r ? ' [' + regionCN[r] + ']' : '';
+                        }
+                        document.getElementById('info-box').innerText = '当前国家：' + getCN(mapped) + ' ' + nameEN + regionText;
                         if (!layer.highlighted) {
-                            layer.setStyle({ weight: 2, color: '#444', fillOpacity: 0.4,
-                            fillColor: '#666' });
+                            layer.setStyle({ weight: 2, color: '#444', fillOpacity: 0.4, fillColor: '#666' });
                             layer.bringToFront();
                         }
                     });
@@ -589,15 +568,10 @@
         const toggleBtn = document.getElementById('togglePanelBtn');
         const closeBtn = document.getElementById('closePanelBtn');
 
-        function openPanel() { panel.classList.add('open');
-            toggleBtn.innerHTML = '📖 收起列表 <span class="badge">45</span>'; }
-
-        function closePanel() { panel.classList.remove('open');
-            toggleBtn.innerHTML = '📖 国家列表 <span class="badge">45</span>'; }
-        toggleBtn.onclick = e => { e.stopPropagation();
-            panel.classList.contains('open') ? closePanel() : openPanel(); };
-        closeBtn.onclick = e => { e.stopPropagation();
-            closePanel(); };
+        function openPanel() { panel.classList.add('open'); toggleBtn.innerHTML = '📖 收起列表 <span class="badge">45</span>'; }
+        function closePanel() { panel.classList.remove('open'); toggleBtn.innerHTML = '📖 国家列表 <span class="badge">45</span>'; }
+        toggleBtn.onclick = e => { e.stopPropagation(); panel.classList.contains('open') ? closePanel() : openPanel(); };
+        closeBtn.onclick = e => { e.stopPropagation(); closePanel(); };
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
     </script>
 
