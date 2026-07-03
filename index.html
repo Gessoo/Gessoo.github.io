@@ -69,6 +69,56 @@
     <footer>
         <p>© 2026 Gesso. Powered by Minimal HTML.</p>
     </footer>
+    <!-- ==================== 可爱鼠标跟随小猫-AI丐版 ==================== -->
+    <script>
+        const nekoEl = document.createElement("div");
+        nekoEl.id = "oneko";
+        nekoEl.style.cssText = `position:fixed;width:32px;height:32px;background:url('oneko.gif') no-repeat;z-index:2147483647;pointer-events:none;image-rendering:pixelated;bottom:40px;right:40px;`;
+        document.body.appendChild(nekoEl);
 
+        let nekoX = 200, nekoY = 200;
+        let mouseX = 200, mouseY = 200;
+
+        document.addEventListener("mousemove", e => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        function updateSprite() {
+            const dx = mouseX - nekoX;
+            const dy = mouseY - nekoY;
+            let sx = -3*32, sy = -3*32;
+            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    sx = dx > 0 ? -3*32 : -4*32;
+                } else {
+                    sx = dy > 0 ? -6*32 : -1*32;
+                }
+                sy = -1*32;
+            }
+            nekoEl.style.backgroundPosition = `${sx}px ${sy}px`;
+        }
+
+        function animate() {
+            const dx = mouseX - nekoX;
+            const dy = mouseY - nekoY;
+            if (Math.sqrt(dx*dx + dy*dy) > 8) {
+                nekoX += dx * 0.15;
+                nekoY += dy * 0.15;
+            }
+            nekoEl.style.left = (nekoX - 16) + "px";
+            nekoEl.style.top = (nekoY - 16) + "px";
+            updateSprite();
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+
+    <style>
+        @media (max-width: 768px) {
+            #oneko { display: none !important; }
+        }
+    </style>
 </body>
 </html>
